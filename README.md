@@ -36,7 +36,7 @@ The app runs on your phone. It starts a local Android Auto session and sends it 
 
 ## Download
 
-Download the APK from [Releases](https://github.com/ibrahimdawood/carlink/releases/latest). Android asks once to allow installs from your browser or chat app. The app checks for updates by itself.
+Download [CarLink.apk](https://github.com/ibrahimdawood/carlink/releases/latest/download/CarLink.apk), the latest release. Android asks once to allow installs from your browser or chat app. The app checks for updates by itself.
 
 ## Setup
 
@@ -77,6 +77,12 @@ Needs JDK 17 and the Android SDK.
 ```
 
 Release builds are signed only when `keystore.properties` (storeFile, storePassword, keyAlias, keyPassword) is in the project root. It is gitignored.
+
+### Releases
+
+Every push to `main` runs `.github/workflows/release.yml`: it builds a release APK as version `1.3.<run number>`, tags it `v1.3.<run number>` and publishes it as a GitHub Release with `CarLink.apk` attached. The in-app update checker picks it up from there.
+
+To sign with your own key, add these repository secrets: `RELEASE_KEYSTORE_BASE64` (the keystore file in base64), `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Without them the APK is signed with the committed debug key. Switching keys later means uninstalling the app once.
 
 ## Credits
 

@@ -23,8 +23,9 @@ android {
         applicationId = "io.github.ibrahimdawood.carlink"
         minSdk = 29
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.2.0"
+        // CI release builds pass -PversionCode / -PversionName; local builds keep these defaults.
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 5
+        versionName = providers.gradleProperty("versionName").orNull ?: "1.2.0"
         buildConfigField("String", "GIT_SHA", "\"${gitSha()}\"")
     }
 
