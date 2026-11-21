@@ -12,6 +12,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CarAALink"
+rootProject.name = "carlink"
 include(":app")
 include(":protocol")

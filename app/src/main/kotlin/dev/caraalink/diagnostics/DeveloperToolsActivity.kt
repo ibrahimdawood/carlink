@@ -110,7 +110,7 @@ class DeveloperToolsActivity : Activity() {
         startActivity(
             Intent.createChooser(
                 logger.shareFileIntent(file),
-                "Share AA Bridge logs",
+                "Share CarLink logs",
             )
         )
     }

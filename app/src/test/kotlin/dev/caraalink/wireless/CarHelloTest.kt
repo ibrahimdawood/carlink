@@ -13,8 +13,8 @@ import java.nio.ByteOrder
 class CarHelloTest {
     @Test
     fun packetMatchesCarbitLinkHeader() {
-        val body = """{"phoneType":"Android","packageName":"io.github.alimorgaan.aabridge"}"""
-        val p = CarHello.packet("io.github.alimorgaan.aabridge")
+        val body = """{"phoneType":"Android","packageName":"io.github.ibrahimdawood.carlink"}"""
+        val p = CarHello.packet("io.github.ibrahimdawood.carlink")
         val bb = ByteBuffer.wrap(p).order(ByteOrder.LITTLE_ENDIAN)
         assertEquals(0x70000010, bb.getInt(0))
         assertEquals(16 + body.length, bb.getInt(4))
@@ -35,7 +35,7 @@ class CarHelloTest {
         val server = ServerSocket(0)
         thread(isDaemon = true) { runCatching { server.accept() } }
         val start = System.currentTimeMillis()
-        assertFalse(CarHello.send("127.0.0.1", null, "io.github.alimorgaan.aabridge", server.localPort))
+        assertFalse(CarHello.send("127.0.0.1", null, "io.github.ibrahimdawood.carlink", server.localPort))
         assertTrue("took ${System.currentTimeMillis() - start} ms", System.currentTimeMillis() - start < 8_000)
         server.close()
     }

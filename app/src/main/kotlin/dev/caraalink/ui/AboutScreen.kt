@@ -24,10 +24,10 @@ import androidx.compose.ui.unit.dp
 import dev.caraalink.BuildConfig
 import dev.caraalink.R
 
-private const val AUTHOR_URL = "https://github.com/alimorgaan"
+private const val AUTHOR_URL = "https://github.com/alimorgaan/AA-Bridge"
 private const val CREDIT_URL = "https://github.com/JObersi10/CarAALink"
-private const val LICENSE_URL = "https://github.com/alimorgaan/AA-Bridge/blob/main/LICENSE"
-private const val SOURCE_URL = "https://github.com/alimorgaan/AA-Bridge"
+private const val LICENSE_URL = "https://github.com/ibrahimdawood/carlink/blob/main/LICENSE"
+private const val SOURCE_URL = "https://github.com/ibrahimdawood/carlink"
 
 @Composable
 fun AboutScreen(onBack: () -> Unit) {

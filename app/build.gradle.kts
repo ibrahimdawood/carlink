@@ -20,7 +20,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "io.github.alimorgaan.aabridge"
+        applicationId = "io.github.ibrahimdawood.carlink"
         minSdk = 29
         targetSdk = 34
         versionCode = 5

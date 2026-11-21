@@ -26,7 +26,7 @@
     <string name="home_choose_car">اختيار سيارة أخرى</string>
     <string name="home_found_nearby">تم العثور على %1$s بالقرب منك</string>
     <string name="home_wifi_off_title">شغّل الواي فاي</string>
-    <string name="home_wifi_off_body">يحتاج AA Bridge إلى تشغيل الواي فاي للوصول إلى سيارتك. لا داعي للاتصال بأي شبكة.</string>
+    <string name="home_wifi_off_body">يحتاج CarLink إلى تشغيل الواي فاي للوصول إلى سيارتك. لا داعي للاتصال بأي شبكة.</string>
     <string name="home_wifi_settings">إعدادات الواي فاي</string>
     <string name="home_disconnect">قطع الاتصال</string>
     <string name="home_send_logs">إرسال السجلات</string>
@@ -54,14 +54,14 @@
     <string name="setup_server_title">شغّل خادم Android Auto</string>
     <string name="setup_server_body">اضغط ⋮، ثم Start head unit server.</string>
     <string name="setup_car_title">اتصل بسيارتك</string>
-    <string name="setup_car_body">وصّل الكابل، ثم اختر AA Bridge و«دائمًا». أو اتصل بدون كابل.</string>
+    <string name="setup_car_body">وصّل الكابل، ثم اختر CarLink و«دائمًا». أو اتصل بدون كابل.</string>
     <string name="nearby_title">السيارات القريبة</string>
     <string name="nearby_looking">جارٍ البحث عن سيارتك…</string>
     <string name="nearby_tap">اضغط للاتصال</string>
     <string name="nearby_your_car">سيارتك</string>
     <string name="nearby_hint">لا تظهر؟ تأكد أن شاشة السيارة تعمل وتعرض صفحة ربط الهاتف.</string>
     <string name="nearby_permission_title">السماح بالأجهزة القريبة</string>
-    <string name="nearby_permission_body">يحتاج AA Bridge إلى إذن الأجهزة القريبة للعثور على سيارتك.</string>
+    <string name="nearby_permission_body">يحتاج CarLink إلى إذن الأجهزة القريبة للعثور على سيارتك.</string>
     <string name="settings_wireless_car">السيارة اللاسلكية</string>
     <string name="settings_forget">إزالة</string>
     <string name="settings_updates">البحث عن تحديثات</string>
@@ -72,9 +72,9 @@
     <string name="help_tap_q">Android Auto يحتاج لضغطة</string>
     <string name="help_tap_a">يتوقف خادم Android Auto عند إعادة تشغيل الهاتف. اضغط على الإشعار، ثم ⋮ ← Start head unit server.</string>
     <string name="help_ask_q">الهاتف يسألني أي تطبيق أفتح</string>
-    <string name="help_ask_a">اختر AA Bridge ثم «دائمًا». لن يسألك مرة أخرى.</string>
+    <string name="help_ask_a">اختر CarLink ثم «دائمًا». لن يسألك مرة أخرى.</string>
     <string name="help_setup_again">إعادة الإعداد</string>
-    <string name="made_by">من تطوير Ali Morgan</string>
+    <string name="made_by">مبني على AA Bridge من تطوير Ali Morgan</string>
     <string name="about_credit">مبني على CarAALink من تطوير JObersi10</string>
     <string name="about_license">مجاني ومفتوح المصدر، برخصة GPL-3.0</string>
     <string name="about_source">الكود المصدري</string>
@@ -85,7 +85,7 @@
     <string name="fgs_stop">إيقاف</string>
     <string name="fgs_connected_wireless">متصل لاسلكيًا بـ %1$s</string>
     <string name="fgs_reconnecting_wireless">جارٍ إعادة الاتصال بـ %1$s…</string>
-    <string name="wireless_open_to_reconnect">افتح AA Bridge لإعادة الاتصال بـ %1$s</string>
+    <string name="wireless_open_to_reconnect">افتح CarLink لإعادة الاتصال بـ %1$s</string>
     <string name="ring_ready">جاهز</string>
     <string name="ring_searching">جارٍ البحث</string>
     <string name="ring_connecting">جارٍ الاتصال</string>

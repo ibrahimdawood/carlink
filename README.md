@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/logo.svg" alt="AA Bridge" width="480" />
+  <img src="docs/logo.svg" alt="CarLink" width="480" />
 </p>
 
-AA Bridge brings Android Auto to cars whose screen only supports CarbitLink (also called EasyConnection) or QDLink phone mirroring.
+CarLink brings Android Auto to cars whose screen only supports CarbitLink (also called EasyConnection) or QDLink phone mirroring.
 
 The app runs on your phone. It starts a local Android Auto session and sends it to the car, over a USB cable or wirelessly over Wi-Fi Direct. Touches on the car screen go back to Android Auto.
 
@@ -13,9 +13,9 @@ The app runs on your phone. It starts a local Android Auto session and sends it 
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/home-searching.png" alt="AA Bridge looking for the car" height="440" />
+  <img src="docs/screenshots/home-searching.png" alt="CarLink looking for the car" height="440" />
   <img src="docs/screenshots/nearby-cars.jpg" alt="Choosing the car from the Nearby cars list, with the car screen on its phone-link page" height="440" />
-  <img src="docs/screenshots/home-connected.jpg" alt="AA Bridge connected, with Android Auto on the car screen" height="440" />
+  <img src="docs/screenshots/home-connected.jpg" alt="CarLink connected, with Android Auto on the car screen" height="440" />
 </p>
 <p align="center">
   <img src="docs/screenshots/car-screen.jpg" alt="Android Auto with Google Maps and media on the car screen" width="640" />
@@ -36,7 +36,7 @@ The app runs on your phone. It starts a local Android Auto session and sends it 
 
 ## Download
 
-Download [AA-Bridge.apk](https://github.com/alimorgaan/AA-Bridge/releases/latest/download/AA-Bridge.apk), the latest release. Android asks once to allow installs from your browser or chat app. The app checks for updates by itself.
+Download the APK from [Releases](https://github.com/ibrahimdawood/carlink/releases/latest). Android asks once to allow installs from your browser or chat app. The app checks for updates by itself.
 
 ## Setup
 
@@ -46,13 +46,13 @@ The app walks you through this the first time:
 2. Turn on Android Auto developer mode: open Android Auto settings and tap Version 10 times.
 3. Start Android Auto's server: tap ⋮, then Start head unit server.
 4. Connect to your car:
-   - **Cable:** plug the phone into the car's USB port, then choose AA Bridge and Always.
+   - **Cable:** plug the phone into the car's USB port, then choose CarLink and Always.
    - **Wireless:** tap Connect without a cable, then tap your car. Keep the car screen on the phone-link page.
 
 ## Every drive
 
 - **Cable:** plug in. Android Auto opens on the car screen by itself.
-- **Wireless:** open AA Bridge. It finds your car and connects. You can close the app after that.
+- **Wireless:** open CarLink. It finds your car and connects. You can close the app after that.
 
 Plugging in the cable while connected wirelessly switches over without restarting Android Auto. Music, navigation voice and calls play through the phone's Bluetooth to the car, so keep the phone paired with the car.
 
@@ -60,7 +60,7 @@ Plugging in the cable while connected wirelessly switches over without restartin
 
 - **"Android Auto needs a tap":** Android Auto's server stops when the phone restarts. Tap the notification, then ⋮ and Start head unit server.
 - **Stuck on "Starting…":** go to Settings → Apps → Android Auto → Force stop, then start the server again.
-- **The QDLink app opens instead:** go to Settings → Apps → QDLink → Open by default, clear it, then plug in again and choose AA Bridge.
+- **The QDLink app opens instead:** go to Settings → Apps → QDLink → Open by default, clear it, then plug in again and choose CarLink.
 - **Can't find your car:** make sure the car screen is on and showing the phone-link page, Wi-Fi is on, and the phone is close by.
 
 ## Known limits
@@ -80,10 +80,10 @@ Release builds are signed only when `keystore.properties` (storeFile, storePassw
 
 ## Credits
 
-Based on [CarAALink](https://github.com/JObersi10/CarAALink) by JObersi10. The Android Auto head unit certificate comes from aasdk, see [PROVENANCE.md](app/src/main/assets/aa/PROVENANCE.md).
+Based on [AA Bridge](https://github.com/alimorgaan/AA-Bridge) by Ali Morgan, which is based on [CarAALink](https://github.com/JObersi10/CarAALink) by JObersi10. The Android Auto head unit certificate comes from aasdk, see [PROVENANCE.md](app/src/main/assets/aa/PROVENANCE.md).
 
 ## License
 
 GPL-3.0, see [LICENSE](LICENSE).
 
-Android Auto is a trademark of Google LLC. AA Bridge is not affiliated with Google or the makers of CarbitLink or QDLink.
+Android Auto is a trademark of Google LLC. CarLink is not affiliated with Google or the makers of CarbitLink or QDLink.

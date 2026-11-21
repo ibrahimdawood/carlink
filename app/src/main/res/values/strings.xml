@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">AA Bridge</string>
+    <string name="app_name" translatable="false">CarLink</string>
 
     <string name="car_waiting_title">Start Android Auto on your phone</string>
     <string name="car_waiting_body">Open Android Auto, tap ⋮, then Start head unit server.</string>
@@ -31,7 +31,7 @@
     <string name="home_choose_car">Choose another car</string>
     <string name="home_found_nearby">Found %1$s nearby</string>
     <string name="home_wifi_off_title">Turn on Wi-Fi</string>
-    <string name="home_wifi_off_body">AA Bridge needs Wi-Fi on to reach your car. You don\'t have to join a network.</string>
+    <string name="home_wifi_off_body">CarLink needs Wi-Fi on to reach your car. You don\'t have to join a network.</string>
     <string name="home_wifi_settings">Wi-Fi settings</string>
     <string name="home_disconnect">Disconnect</string>
     <string name="home_send_logs">Send logs</string>
@@ -59,14 +59,14 @@
     <string name="setup_server_title">Start Android Auto\'s server</string>
     <string name="setup_server_body">Tap ⋮, then Start head unit server.</string>
     <string name="setup_car_title">Connect to your car</string>
-    <string name="setup_car_body">Plug in, then choose AA Bridge and Always. Or connect without a cable.</string>
+    <string name="setup_car_body">Plug in, then choose CarLink and Always. Or connect without a cable.</string>
     <string name="nearby_title">Nearby cars</string>
     <string name="nearby_looking">Looking for your car…</string>
     <string name="nearby_tap">Tap to connect</string>
     <string name="nearby_your_car">Your car</string>
     <string name="nearby_hint">Not listed? Make sure the car screen is on and showing the phone-link page.</string>
     <string name="nearby_permission_title">Allow Nearby devices</string>
-    <string name="nearby_permission_body">AA Bridge needs Nearby devices to find your car.</string>
+    <string name="nearby_permission_body">CarLink needs Nearby devices to find your car.</string>
     <string name="settings_wireless_car">Wireless car</string>
     <string name="settings_forget">Forget</string>
     <string name="settings_updates">Check for updates</string>
@@ -77,9 +77,9 @@
     <string name="help_tap_q">Android Auto needs a tap</string>
     <string name="help_tap_a">Android Auto\'s server stops when your phone restarts. Tap the notification, then ⋮ → Start head unit server.</string>
     <string name="help_ask_q">My phone asks which app to open</string>
-    <string name="help_ask_a">Choose AA Bridge, then Always. It won\'t ask again.</string>
+    <string name="help_ask_a">Choose CarLink, then Always. It won\'t ask again.</string>
     <string name="help_setup_again">Run setup again</string>
-    <string name="made_by">Made by Ali Morgan</string>
+    <string name="made_by">Based on AA Bridge by Ali Morgan</string>
     <string name="about_credit">Based on CarAALink by JObersi10</string>
     <string name="about_license">Free and open source, GPL-3.0</string>
     <string name="about_source">Source code</string>
@@ -90,7 +90,7 @@
     <string name="fgs_stop">Stop</string>
     <string name="fgs_connected_wireless">Connected wirelessly to %1$s</string>
     <string name="fgs_reconnecting_wireless">Reconnecting to %1$s…</string>
-    <string name="wireless_open_to_reconnect">Open AA Bridge to reconnect to %1$s</string>
+    <string name="wireless_open_to_reconnect">Open CarLink to reconnect to %1$s</string>
     <string name="ring_ready">Ready</string>
     <string name="ring_searching">Searching</string>
     <string name="ring_connecting">Connecting</string>

@@ -89,11 +89,11 @@ class MainActivity : ComponentActivity() {
      * Debug-build-only headless entry point for the AA TLS receiver, so it can
      * be driven over adb rather than by tapping Developer Tools:
      *
-     *   adb shell am start -n io.github.alimorgaan.aabridge/dev.caraalink.MainActivity --es aa_tls start \
+     *   adb shell am start -n io.github.ibrahimdawood.carlink/dev.caraalink.MainActivity --es aa_tls start \
      *       [--es aa_mode dial|listen] [--es aa_role server|client|auto] \
      *       [--ei aa_port 5277] [--es aa_host 127.0.0.1]
      *
-     *   adb shell am start -n io.github.alimorgaan.aabridge/dev.caraalink.MainActivity --es aa_tls stop
+     *   adb shell am start -n io.github.ibrahimdawood.carlink/dev.caraalink.MainActivity --es aa_tls stop
      *
      * Refuses to do anything outside a debuggable build, so a release APK
      * can't be poked into opening a listener from the shell.

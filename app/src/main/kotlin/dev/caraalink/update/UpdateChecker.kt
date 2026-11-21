@@ -28,8 +28,8 @@ import java.net.URL
  */
 object UpdateChecker {
 
-    private const val OWNER = "alimorgaan"
-    private const val REPO = "AA-Bridge"
+    private const val OWNER = "ibrahimdawood"
+    private const val REPO = "carlink"
     private const val CHANNEL_ID = "app_updates"
     private const val NOTIFICATION_ID = 4
 
@@ -146,7 +146,7 @@ object UpdateChecker {
         dest.delete()
         val request = DownloadManager.Request(Uri.parse(apkUrl))
             .setTitle(title)
-            .setDescription("Downloading AA Bridge update")
+            .setDescription("Downloading CarLink update")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationUri(Uri.fromFile(dest))
         val manager = context.getSystemService(DownloadManager::class.java)
