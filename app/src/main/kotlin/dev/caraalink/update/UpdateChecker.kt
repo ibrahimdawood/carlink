@@ -192,7 +192,6 @@ object UpdateChecker {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(dev.caraalink.R.drawable.ic_stat_bridge)
             .setContentTitle(info.title)
-            .setSubText(context.getString(dev.caraalink.R.string.made_by))
             .setContentText("Tap to download and install")
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import dev.caraalink.BuildConfig
 import dev.caraalink.R
 
-private const val AUTHOR_URL = "https://github.com/alimorgaan/AA-Bridge"
 private const val CREDIT_URL = "https://github.com/JObersi10/CarAALink"
 private const val LICENSE_URL = "https://github.com/ibrahimdawood/carlink/blob/main/LICENSE"
 private const val SOURCE_URL = "https://github.com/ibrahimdawood/carlink"
@@ -49,7 +48,6 @@ fun AboutScreen(onBack: () -> Unit) {
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium, color = Dash.Text)
             Text(BuildConfig.VERSION_NAME, style = MaterialTheme.typography.bodyLarge, color = Dash.Muted)
             Spacer(Modifier.height(20.dp))
-            Link(stringResource(R.string.made_by), AUTHOR_URL)
             Link(stringResource(R.string.about_credit), CREDIT_URL)
             Link(stringResource(R.string.about_license), LICENSE_URL)
             Link(stringResource(R.string.about_source), SOURCE_URL)

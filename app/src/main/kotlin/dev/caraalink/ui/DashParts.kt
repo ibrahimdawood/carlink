@@ -163,12 +163,6 @@ fun DashLink(text: String, onClick: () -> Unit) {
     )
 }
 
-/** The author's name, under the wordmark and at the foot of Settings. */
-@Composable
-fun Byline(modifier: Modifier = Modifier) {
-    Text(stringResource(R.string.made_by), modifier, color = Dash.Muted, fontSize = 11.sp)
-}
-
 /** "AA BRIDGE" wordmark with the settings gear. */
 @Composable
 fun DashTopBar(onOpenSettings: () -> Unit) {
@@ -179,7 +173,6 @@ fun DashTopBar(onOpenSettings: () -> Unit) {
     ) {
         Column {
             Text(stringResource(R.string.app_name).uppercase(), color = Dash.Teal, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.5.sp)
-            Byline()
         }
         IconButton(onClick = onOpenSettings) {
             Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.settings), tint = Dash.Teal)
