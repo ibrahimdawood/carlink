@@ -18,7 +18,11 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import dev.caraalink.R
 
-enum class CarScreen { WAITING, STARTING, NOT_RESPONDING, CLOSED }
+enum class CarScreen {
+    WAITING, STARTING, NOT_RESPONDING, CLOSED,
+    /** The driver asked for the phone screen; waiting for them to allow sharing on the phone. */
+    MIRROR_ASK,
+}
 
 /** Full-screen car message shown whenever Android Auto isn't on the car screen. */
 class CarStatusPresentation(
@@ -26,6 +30,7 @@ class CarStatusPresentation(
     display: Display,
     private val screen: CarScreen,
     private val onOpenAa: () -> Unit,
+    private val onMirror: () -> Unit,
 ) : Presentation(context, display) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,9 +45,10 @@ class CarStatusPresentation(
             CarScreen.STARTING -> R.string.car_starting
             CarScreen.NOT_RESPONDING -> R.string.car_not_responding_title
             CarScreen.CLOSED -> R.string.car_closed_title
+            CarScreen.MIRROR_ASK -> R.string.car_mirror_ask_title
         }
         // Amber when the driver has to act, as on the phone.
-        val needsDriver = screen == CarScreen.WAITING || screen == CarScreen.NOT_RESPONDING
+        val needsDriver = screen == CarScreen.WAITING || screen == CarScreen.NOT_RESPONDING || screen == CarScreen.MIRROR_ASK
         column.addView(text(title, 30f, if (needsDriver) AMBER else TEXT, bold = true))
         when (screen) {
             CarScreen.WAITING -> {
@@ -58,7 +64,13 @@ class CarStatusPresentation(
                 spaced(dp(48), dp(48)),
             )
             CarScreen.CLOSED -> column.addView(openButton(), spaced())
+            CarScreen.MIRROR_ASK -> {
+                column.addView(text(R.string.car_mirror_ask_body, 18f, MUTED))
+                column.addView(openButton(), spaced(top = dp(28)))
+            }
         }
+        // The phone's own screen works without Android Auto's server, so offer it whenever AA isn't starting.
+        if (screen != CarScreen.STARTING && screen != CarScreen.MIRROR_ASK) column.addView(mirrorButton(), spaced(top = dp(20)))
         setContentView(FrameLayout(context).apply {
             setBackgroundColor(BACKGROUND)
             addView(column, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -111,6 +123,21 @@ class CarStatusPresentation(
         background = GradientDrawable().apply { setColor(BRAND); cornerRadius = dp(40).toFloat() }
         isClickable = true
         setOnClickListener { onOpenAa() }
+    }
+
+    private fun mirrorButton() = TextView(context).apply {
+        setText(R.string.car_mirror)
+        textSize = 20f
+        setTextColor(ACCENT)
+        typeface = Typeface.DEFAULT_BOLD
+        setPadding(dp(36), dp(14), dp(36), dp(14))
+        background = GradientDrawable().apply {
+            setColor(SURFACE)
+            setStroke(dp(2), ACCENT)
+            cornerRadius = dp(40).toFloat()
+        }
+        isClickable = true
+        setOnClickListener { onMirror() }
     }
 
     private fun spaced(width: Int = ViewGroup.LayoutParams.WRAP_CONTENT, height: Int = ViewGroup.LayoutParams.WRAP_CONTENT, top: Int = dp(16)) =

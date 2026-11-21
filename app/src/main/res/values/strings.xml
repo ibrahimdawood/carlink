@@ -79,7 +79,6 @@
     <string name="help_ask_q">My phone asks which app to open</string>
     <string name="help_ask_a">Choose CarLink, then Always. It won\'t ask again.</string>
     <string name="help_setup_again">Run setup again</string>
-    <string name="made_by">Based on AA Bridge by Ali Morgan</string>
     <string name="about_credit">Based on CarAALink by JObersi10</string>
     <string name="about_license">Free and open source, GPL-3.0</string>
     <string name="about_source">Source code</string>
@@ -103,4 +102,24 @@
     <string name="tile_link">Link</string>
     <string name="link_wireless_short">Wireless</string>
     <string name="link_cable_short">Cable</string>
+    <!-- Phone screen mirroring -->
+    <string name="car_mirror">Phone screen</string>
+    <string name="car_mirror_ask_title">Allow screen sharing on your phone</string>
+    <string name="car_mirror_ask_body">Your phone is asking to share its screen. Tap Start now on the phone.</string>
+    <string name="mirror_consent_channel">Phone screen on the car</string>
+    <string name="mirror_consent_title">Show your phone screen on the car</string>
+    <string name="mirror_consent_body">Tap to allow screen sharing</string>
+    <string name="mirror_touch_service">CarLink touch control</string>
+    <string name="mirror_touch_service_description">Lets you use your phone from the car screen while CarLink shows the phone screen there. CarLink only taps and swipes where you touch the car screen. It does not read anything on your screen.</string>
+    <string name="mirror_start">Show phone screen on the car</string>
+    <string name="mirror_back_to_aa">Back to Android Auto</string>
+    <string name="mirror_active_body">Your phone screen is on the car. Turn the phone sideways to fill more of the car screen.</string>
+    <string name="mirror_touch_title">Turn on touch control?</string>
+    <string name="mirror_touch_body">To use your phone from the car screen, turn on CarLink touch control in Accessibility. You only do this once.</string>
+    <string name="mirror_touch_open">Open settings</string>
+    <string name="mirror_touch_skip">Without touch</string>
+    <string name="settings_mirror_touch">Touch control for phone screen</string>
+    <string name="settings_on">On</string>
+    <string name="settings_off">Off</string>
+    <string name="fgs_mirroring">Your phone screen is on the car</string>
 </resources>

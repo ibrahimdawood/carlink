@@ -4,6 +4,7 @@ import android.app.Presentation
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.media.projection.MediaProjection
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -16,13 +17,16 @@ import android.view.WindowManager
 /**
  * Owns what the car sees. One private virtual display (never seen by DeX)
  * renders into the encoder's surface and shows Android Auto or a status screen.
+ * In [Mode.MIRROR] that display lets go of the surface and a screen-capture display
+ * of the phone's own screen renders into it instead.
  * All work happens on the main thread.
  */
 class CarDisplay(
     private val context: Context,
     private val onOpenAa: () -> Unit,
+    private val onMirror: () -> Unit,
 ) {
-    enum class Mode { STATUS, AA }
+    enum class Mode { STATUS, AA, MIRROR }
 
     private val main = Handler(Looper.getMainLooper())
     private var carDisplay: VirtualDisplay? = null
@@ -34,24 +38,92 @@ class CarDisplay(
         private set
     private var touchDownAt = 0L
 
+    private var encoderSurface: Surface? = null
+    @Volatile var frameWidth = 0
+        private set
+    @Volatile var frameHeight = 0
+        private set
+    private var projection: MediaProjection? = null
+    private var mirrorDisplay: VirtualDisplay? = null
+
+    private fun dpiFor(w: Int, h: Int) = (minOf(w, h) / 720f * 213).toInt().coerceIn(120, 320)
+
     /** Point the car display at a (new) encoder surface of [w]x[h]. */
     fun attach(surface: Surface, w: Int, h: Int) = main.post {
-        val dpi = (minOf(w, h) / 720f * 213).toInt().coerceIn(120, 320)
+        encoderSurface = surface
+        frameWidth = w
+        frameHeight = h
+        val dpi = dpiFor(w, h)
+        // While mirroring, the phone's screen owns the encoder surface.
+        val ownSurface = if (mode == Mode.MIRROR) null else surface
         val existing = carDisplay
         if (existing == null) {
             val dm = context.getSystemService(DisplayManager::class.java)
-            carDisplay = dm.createVirtualDisplay("CarAALink", w, h, dpi, surface, 0)
+            carDisplay = dm.createVirtualDisplay("CarAALink", w, h, dpi, ownSurface, 0)
         } else {
             existing.resize(w, h, dpi)
-            existing.surface = surface
+            existing.surface = ownSurface
+        }
+        mirrorDisplay?.let {
+            it.resize(w, h, dpi)
+            it.surface = surface
         }
         showCurrent()
     }
 
     fun showStatus(screen: CarScreen) = main.post {
+        leaveMirror()
         this.screen = screen
         mode = Mode.STATUS
         showCurrent()
+    }
+
+    /**
+     * Shows the phone's own screen on the car, letterboxed, through [projection]
+     * (already granted). Android Auto, if it was up, ends as on any exit from it.
+     * [onEnded] runs on the main thread when the driver stops sharing from the phone.
+     */
+    fun showMirror(projection: MediaProjection, onEnded: () -> Unit) = main.post {
+        leaveMirror()
+        // Mode first: the Android Auto presentation ends its session only on a real exit from AA.
+        mode = Mode.MIRROR
+        // Leaving the mirror goes to Closed, and nothing reopens Android Auto behind it meanwhile.
+        screen = CarScreen.CLOSED
+        presentation?.dismiss()
+        presentation = null
+        carDisplay?.surface = null
+        this.projection = projection
+        // Android 14 requires the callback before the capture display exists.
+        projection.registerCallback(object : MediaProjection.Callback() {
+            override fun onStop() {
+                if (this@CarDisplay.projection !== projection) return
+                Log.i(TAG, "screen sharing stopped from the phone")
+                onEnded()
+            }
+        }, main)
+        val surface = encoderSurface
+        val w = frameWidth.takeIf { it > 0 } ?: 1280
+        val h = frameHeight.takeIf { it > 0 } ?: 720
+        mirrorDisplay = try {
+            projection.createVirtualDisplay(
+                "CarLinkMirror", w, h, dpiFor(w, h),
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, main,
+            )
+        } catch (e: RuntimeException) {
+            Log.e(TAG, "screen capture display failed", e)
+            null
+        }
+        if (mirrorDisplay == null) main.post { onEnded() }
+    }
+
+    /** Ends screen sharing and gives the encoder surface back to the car display. */
+    private fun leaveMirror() {
+        val p = projection ?: return
+        projection = null
+        mirrorDisplay?.release()
+        mirrorDisplay = null
+        runCatching { p.stop() }
+        carDisplay?.surface = encoderSurface
     }
 
     /**
@@ -69,6 +141,7 @@ class CarDisplay(
         onSurface: (Surface?) -> Unit,
         onTouch: (pointers: List<Triple<Int, Int, Int>>, actionIndex: Int, action: Int) -> Unit,
     ) = main.post {
+        leaveMirror()
         aaVideoSize = videoWidth to videoHeight
         aaMargin = widthMargin to heightMargin
         aaOnSurface = onSurface
@@ -83,6 +156,7 @@ class CarDisplay(
     private var aaOnTouch: ((pointers: List<Triple<Int, Int, Int>>, actionIndex: Int, action: Int) -> Unit)? = null
 
     private fun showCurrent() {
+        if (mode == Mode.MIRROR) return
         val display = carDisplay?.display ?: return
         presentation?.dismiss()
         presentation = try {
@@ -90,7 +164,7 @@ class CarDisplay(
                 mode == Mode.AA && aaVideoSize != null -> aaPresentation(display)
                 else -> {
                     mode = Mode.STATUS
-                    CarStatusPresentation(context, display, screen, onOpenAa)
+                    CarStatusPresentation(context, display, screen, onOpenAa, onMirror)
                 }
             }.also { it.show() }
         } catch (e: WindowManager.InvalidDisplayException) {
@@ -123,6 +197,7 @@ class CarDisplay(
     fun redraw() = main.post { presentation?.window?.decorView?.invalidate() }
 
     fun release() = main.post {
+        leaveMirror()
         presentation?.dismiss()
         presentation = null
         carDisplay?.release()

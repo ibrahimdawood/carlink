@@ -74,7 +74,6 @@
     <string name="help_ask_q">الهاتف يسألني أي تطبيق أفتح</string>
     <string name="help_ask_a">اختر CarLink ثم «دائمًا». لن يسألك مرة أخرى.</string>
     <string name="help_setup_again">إعادة الإعداد</string>
-    <string name="made_by">مبني على AA Bridge من تطوير Ali Morgan</string>
     <string name="about_credit">مبني على CarAALink من تطوير JObersi10</string>
     <string name="about_license">مجاني ومفتوح المصدر، برخصة GPL-3.0</string>
     <string name="about_source">الكود المصدري</string>
@@ -98,4 +97,24 @@
     <string name="tile_link">الاتصال</string>
     <string name="link_wireless_short">لاسلكي</string>
     <string name="link_cable_short">كابل</string>
+    <!-- Phone screen mirroring -->
+    <string name="car_mirror">شاشة الموبايل</string>
+    <string name="car_mirror_ask_title">اسمح بمشاركة الشاشة على موبايلك</string>
+    <string name="car_mirror_ask_body">موبايلك بيطلب يشارك شاشته. اضغط «البدء الآن» على الموبايل.</string>
+    <string name="mirror_consent_channel">شاشة الموبايل على العربية</string>
+    <string name="mirror_consent_title">اعرض شاشة موبايلك على العربية</string>
+    <string name="mirror_consent_body">اضغط للسماح بمشاركة الشاشة</string>
+    <string name="mirror_touch_service">التحكم باللمس في CarLink</string>
+    <string name="mirror_touch_service_description">بيخليك تستخدم موبايلك من شاشة العربية وقت ما CarLink بيعرض شاشة الموبايل عليها. CarLink بيلمس ويسحب بس في المكان اللي انت لمسته على شاشة العربية، ومش بيقرا أي حاجة على شاشتك.</string>
+    <string name="mirror_start">اعرض شاشة الموبايل على العربية</string>
+    <string name="mirror_back_to_aa">رجوع لـ Android Auto</string>
+    <string name="mirror_active_body">شاشة موبايلك على العربية. لفّ الموبايل بالعرض عشان تملا شاشة العربية أكتر.</string>
+    <string name="mirror_touch_title">تشغيل التحكم باللمس؟</string>
+    <string name="mirror_touch_body">عشان تستخدم موبايلك من شاشة العربية، شغّل «التحكم باللمس في CarLink» من إعدادات إمكانية الوصول. الخطوة دي مرة واحدة بس.</string>
+    <string name="mirror_touch_open">افتح الإعدادات</string>
+    <string name="mirror_touch_skip">من غير لمس</string>
+    <string name="settings_mirror_touch">التحكم باللمس لشاشة الموبايل</string>
+    <string name="settings_on">شغّال</string>
+    <string name="settings_off">مقفول</string>
+    <string name="fgs_mirroring">شاشة موبايلك على العربية</string>
 </resources>

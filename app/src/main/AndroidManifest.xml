@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Showing the phone's own screen on the car (screen mirroring). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -87,7 +89,29 @@
         <service
             android:name=".service.UsbLinkForegroundService"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice|microphone|location" />
+            android:foregroundServiceType="connectedDevice|microphone|location|mediaProjection" />
+
+        <!-- Asks for screen sharing; invisible, the system prompt is all the driver sees. -->
+        <activity
+            android:name=".mirror.MirrorConsentActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- Touch control: replays car-screen touches on the phone while its screen is mirrored. -->
+        <service
+            android:name=".mirror.MirrorInputService"
+            android:exported="false"
+            android:label="@string/mirror_touch_service"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/mirror_input_service" />
+        </service>
 
 
         <provider

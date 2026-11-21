@@ -56,6 +56,15 @@ The app walks you through this the first time:
 
 Plugging in the cable while connected wirelessly switches over without restarting Android Auto. Music, navigation voice and calls play through the phone's Bluetooth to the car, so keep the phone paired with the car.
 
+## Phone screen on the car
+
+Besides Android Auto, CarLink can show your phone's own screen on the car, so you can use apps that Android Auto doesn't have.
+
+- **Start it:** on the phone, tap **Show phone screen on the car**. Or on the car screen, tap **Phone screen**. Android asks every time whether to allow screen sharing: tap Start now.
+- **Touch from the car:** turn on **CarLink touch control** once in Settings → Accessibility (CarLink offers to open it). Tap, swipe, scroll and long press work with one finger. The car's Back key is the phone's Back. Without touch control the car only shows the screen.
+- **Fill the screen:** a phone held upright shows in the middle with black bars at the sides. Turn the phone sideways to fill more of the car screen.
+- **Back to Android Auto:** tap **Back to Android Auto** in the app or in the notification, or press the car's Home key and then Open Android Auto.
+
 ## If something goes wrong
 
 - **"Android Auto needs a tap":** Android Auto's server stops when the phone restarts. Tap the notification, then ⋮ and Start head unit server.

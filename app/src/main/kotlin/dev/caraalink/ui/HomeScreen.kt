@@ -105,7 +105,6 @@ fun BrandBar(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.5.sp,
         )
-        Byline()
     }
 }
 
@@ -181,7 +180,7 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenNearby: () -> Unit) {
             val body = when (state) {
                 HomeState.READY -> R.string.home_ready_body
                 HomeState.NEEDS_TAP -> R.string.home_needs_tap_body
-                HomeState.CONNECTED -> R.string.home_connected_body
+                HomeState.CONNECTED -> if (connection.mirroring) R.string.mirror_active_body else R.string.home_connected_body
                 HomeState.SEARCHING -> R.string.home_searching_body
                 HomeState.CONNECTING -> R.string.home_connecting_body
                 HomeState.NOT_FOUND -> R.string.home_not_found_body
@@ -221,6 +220,11 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenNearby: () -> Unit) {
                 Telltale(painterResource(R.drawable.ic_car), stringResource(R.string.tile_car), if (carConnected) Lamp.ON else Lamp.OFF)
             }
             Spacer(Modifier.height(16.dp))
+            // The phone screen doesn't need Android Auto's server, so it's there whenever a car is.
+            if (carConnected) {
+                MirrorAction(connection.mirroring)
+                Spacer(Modifier.height(4.dp))
+            }
             HomeActions(state, connection, onOpenNearby)
             SendLogsLink()
         }

@@ -75,13 +75,13 @@ fun SettingsScreen(onBack: () -> Unit, onHelp: () -> Unit, onAbout: () -> Unit) 
             SettingsRow(rememberVectorPainter(Icons.Rounded.Refresh), stringResource(R.string.settings_updates)) {
                 UpdateChecker.checkNow(context, manual = true)
             }
+            TouchControlRow()
             SettingsRow(painterResource(R.drawable.ic_help), stringResource(R.string.help), onHelp)
             SettingsRow(rememberVectorPainter(Icons.Rounded.Info), stringResource(R.string.settings_about), onAbout)
             SettingsRow(painterResource(R.drawable.ic_tune), stringResource(R.string.settings_advanced)) {
                 context.startActivity(Intent(context, SettingsActivity::class.java))
             }
         }
-        Byline(Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
     }
 }
 
@@ -114,6 +114,29 @@ private fun DashGroup(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(shape).background(Dash.Tile).border(1.dp, Dash.TileBorder, shape),
         content = content,
+    )
+}
+
+/** Shows whether touch control for the phone screen is on, and opens Android's switch for it. */
+@Composable
+private fun TouchControlRow() {
+    val context = LocalContext.current
+    // Re-read when the screen comes back from Android's settings.
+    var enabled by remember { mutableStateOf(dev.caraalink.mirror.MirrorInputService.isEnabled(context)) }
+    val lifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) enabled = dev.caraalink.mirror.MirrorInputService.isEnabled(context)
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_mirror_touch), style = MaterialTheme.typography.bodyLarge) },
+        supportingContent = { Text(stringResource(if (enabled) R.string.settings_on else R.string.settings_off)) },
+        leadingContent = { Icon(painterResource(R.drawable.ic_touch_app), contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable { dev.caraalink.ui.openTouchControlSettings(context) },
     )
 }
 

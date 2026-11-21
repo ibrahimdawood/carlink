@@ -4,6 +4,7 @@ import android.content.Context
 
 import android.hardware.usb.UsbAccessory
 import android.util.Log
+import android.view.MotionEvent
 import dev.caraalink.aa.AndroidAutoServer
 import dev.caraalink.connection.ConnectionPhase
 import dev.caraalink.connection.ConnectionStateHolder
@@ -35,7 +36,7 @@ class CarSession(
     private var encoder: CarVideoEncoder? = null
     private var pxc: PxcChannel? = null
     private val features = CarFeatures(context)
-    private val display = CarDisplay(context, onOpenAa = { openAndroidAuto() })
+    private val display = CarDisplay(context, onOpenAa = { openAndroidAuto() }, onMirror = { askForMirror() })
 
     /** The driver left Android Auto on purpose; stay on Closed until they tap to reopen. */
     private fun closeAa() {
@@ -110,6 +111,7 @@ class CarSession(
 
     private fun release() {
         released = true
+        ConnectionStateHolder.update { it.copy(mirroring = false) }
         aaWatchdog.removeCallbacksAndMessages(null)
         pollThread?.interrupt()
         pollThread = null
@@ -329,6 +331,12 @@ class CarSession(
     }
 
     private fun showAaSurface() {
+        if (display.mode == CarDisplay.Mode.MIRROR) {
+            // Android Auto finished starting after the driver switched to the phone screen.
+            logger.log("AA ready while mirroring -- closing it")
+            dev.caraalink.aa.AaSessionProbe.active?.stop()
+            return
+        }
         aaWatchdog.removeCallbacks(aaWatchdogTick)
         aaWatchdog.postDelayed(aaWatchdogTick, AA_WATCHDOG_CHECK_MS)
         // No mid-session resolution/DPI renegotiation exists in AA (confirmed,
@@ -439,13 +447,82 @@ class CarSession(
         // Car coordinates are in its own screen size; the encoder may be a few pixels smaller.
         val fx = x * enc.width.toFloat() / c.width
         val fy = y * enc.height.toFloat() / c.height
-        display.touch(action, fx, fy)
+        if (display.mode == CarDisplay.Mode.MIRROR) mirrorTouch(action, enc.width, enc.height, fx, fy)
+        else display.touch(action, fx, fy)
     }
 
     override fun onKey(key: Int) {
         logger.log("car key $key")
+        if (display.mode == CarDisplay.Mode.MIRROR) {
+            when (key) {
+                MirrorControlChannel.KEY_BACK -> dev.caraalink.mirror.MirrorInputService.back()
+                MirrorControlChannel.KEY_HOME -> stopMirror(openAa = false)
+            }
+            return
+        }
         if (key == MirrorControlChannel.KEY_HOME || key == MirrorControlChannel.KEY_BACK) closeAa()
     }
+
+    // --- phone screen mirroring ---
+
+    /** The car's "Phone screen" button: ask on the phone, and say so on the car meanwhile. */
+    private fun askForMirror() {
+        if (released) return
+        logger.log("mirror: driver asked for the phone screen")
+        display.showStatus(CarScreen.MIRROR_ASK)
+        dev.caraalink.mirror.MirrorConsentActivity.request(context, fromBackground = true)
+    }
+
+    /** Sharing was allowed: the phone screen replaces whatever the car shows. */
+    fun startMirror(projection: android.media.projection.MediaProjection) {
+        if (released) {
+            projection.stop()
+            return
+        }
+        logger.log("mirror: started, touch control ${if (dev.caraalink.mirror.MirrorInputService.isRunning) "on" else "off"}")
+        aaWatchdog.removeCallbacks(aaWatchdogTick)
+        pollThread?.interrupt()
+        pollThread = null
+        AndroidAutoServer.cancelNeedsTap(context)
+        display.showMirror(projection) { stopMirror(openAa = false) }
+        ConnectionStateHolder.update { it.copy(mirroring = true) }
+    }
+
+    /** Back from the phone screen to Closed, or straight to Android Auto with [openAa]. */
+    fun stopMirror(openAa: Boolean) {
+        main.post {
+            if (released) return@post
+            val wasMirroring = display.mode == CarDisplay.Mode.MIRROR
+            if (!wasMirroring && display.screen != CarScreen.MIRROR_ASK) return@post
+            logger.log("mirror: stopped (openAa=$openAa)")
+            display.showStatus(CarScreen.CLOSED)
+            ConnectionStateHolder.update { it.copy(mirroring = false) }
+            if (openAa) openAndroidAuto()
+        }
+    }
+
+    /** Sharing was refused on the phone: leave the "allow on your phone" screen. */
+    fun onMirrorDenied() {
+        main.post {
+            if (!released && display.mode == CarDisplay.Mode.STATUS && display.screen == CarScreen.MIRROR_ASK) {
+                display.showStatus(CarScreen.CLOSED)
+            }
+        }
+    }
+
+    private fun mirrorTouch(action: Int, frameW: Int, frameH: Int, fx: Float, fy: Float) {
+        val size = android.graphics.Point()
+        @Suppress("DEPRECATION")
+        context.getSystemService(android.hardware.display.DisplayManager::class.java)
+            .getDisplay(android.view.Display.DEFAULT_DISPLAY)?.getRealSize(size) ?: return
+        val p = dev.caraalink.mirror.MirrorTouch.map(frameW, frameH, size.x, size.y, fx, fy)
+        // A finger that slides off the picture onto a bar still has to lift on the phone.
+        val target = p ?: if (action == MotionEvent.ACTION_UP) lastMirrorTouch ?: return else return
+        if (p != null) lastMirrorTouch = p
+        dev.caraalink.mirror.MirrorInputService.touch(action, target.x, target.y)
+    }
+
+    private var lastMirrorTouch: dev.caraalink.mirror.MirrorTouch.Point? = null
 
     override fun onDataStreamOpen(stream: MirrorStream) {
         synchronized(frameLock) {
@@ -575,7 +652,7 @@ class CarSession(
 
         /** Automatic reopens (restarts, retries, polls) must not undo an unplug or a deliberate exit. */
         internal fun mayAutoOpenAa(released: Boolean, screen: CarScreen): Boolean =
-            !released && screen != CarScreen.CLOSED
+            !released && screen != CarScreen.CLOSED && screen != CarScreen.MIRROR_ASK
 
         /** Reconnect backoff that long means Android Auto's server is gone, not just restarting. */
         internal fun lostServer(connectionActive: Boolean, inactiveForMs: Long): Boolean =

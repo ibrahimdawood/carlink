@@ -140,6 +140,9 @@ class UsbLinkForegroundService : Service() {
                     ?: AppSettings.wirelessCar(this)
                 beginWireless(target)
             }
+            ACTION_START_MIRROR -> beginMirror(intent)
+            ACTION_STOP_MIRROR -> session?.stopMirror(openAa = intent.getBooleanExtra(EXTRA_OPEN_AA, false))
+            ACTION_MIRROR_DENIED -> session?.onMirrorDenied()
             ACTION_STOP -> {
                 Log.i(TAG, "onStartCommand: ACTION_STOP")
                 stopping = true
@@ -302,14 +305,52 @@ class UsbLinkForegroundService : Service() {
         if (micGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 startForeground(NOTIFICATION_ID, notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or location)
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or location or mirrorType())
                 return
             } catch (e: SecurityException) {
                 Log.w(TAG, "startForeground with microphone refused -- retrying connectedDevice only", e)
             }
         }
-        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or location)
+        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or location or mirrorType())
     }
+
+    /** True from the moment sharing is allowed until the session ends; every later startForeground keeps the type. */
+    @Volatile private var mirrorGranted = false
+    @Volatile private var wasMirroring = false
+
+    /** Android only hands out the screen capture once the service runs as a mediaProjection foreground service. */
+    private fun beginMirror(intent: Intent) {
+        val code = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
+        @Suppress("DEPRECATION")
+        val data = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
+        val s = session
+        mirrorGranted = true
+        try {
+            startForegroundWithMic(wireless = ConnectionStateHolder.snapshot.link == CarLink.WIRELESS)
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "startForeground for screen sharing failed", e)
+            mirrorGranted = false
+            s?.onMirrorDenied()
+            return
+        }
+        if (s == null || data == null) {
+            Log.w(TAG, "screen sharing allowed but no car session")
+            mirrorGranted = false
+            startForegroundWithMic(wireless = ConnectionStateHolder.snapshot.link == CarLink.WIRELESS)
+            if (s == null && ConnectionStateHolder.snapshot.link == CarLink.NONE) stopSelfCleanly()
+            return
+        }
+        val projection = getSystemService(android.media.projection.MediaProjectionManager::class.java)
+            .getMediaProjection(code, data)
+        if (projection == null) {
+            mirrorGranted = false
+            s.onMirrorDenied()
+            return
+        }
+        s.startMirror(projection)
+    }
+
+    private fun mirrorType() = if (mirrorGranted) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION else 0
 
     private fun needsLocationForWifiDirect() = Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2
 
@@ -494,7 +535,6 @@ class UsbLinkForegroundService : Service() {
         val n = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_bridge)
             .setContentTitle(getString(R.string.app_name))
-            .setSubText(getString(R.string.made_by))
             .setContentText(getString(R.string.wireless_open_to_reconnect, name))
             .setContentIntent(open)
             .setAutoCancel(true)
@@ -583,6 +623,9 @@ class UsbLinkForegroundService : Service() {
     }
 
     private fun updateNotification(snapshot: ConnectionSnapshot) {
+        // Sharing ended (exit, unplug, stopped from the phone): later foreground starts mustn't claim it any more.
+        if (wasMirroring && !snapshot.mirroring) mirrorGranted = false
+        wasMirroring = snapshot.mirroring
         maybeScheduleReconnect(snapshot)
         val manager = getSystemService(NotificationManager::class.java)
         manager.notify(NOTIFICATION_ID, buildNotification(snapshot))
@@ -610,15 +653,21 @@ class UsbLinkForegroundService : Service() {
             else -> cableStatus(snapshot)
         }
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_bridge)
             .setContentTitle(getString(R.string.app_name))
-            .setSubText(getString(R.string.made_by))
-            .setContentText(statusText)
+            .setContentText(if (snapshot.mirroring) getString(R.string.fgs_mirroring) else statusText)
             .setOngoing(true)
             .setContentIntent(openAppIntent)
-            .addAction(0, getString(R.string.fgs_stop), stopIntent)
-            .build()
+        if (snapshot.mirroring) {
+            val backToAa = PendingIntent.getService(
+                this, 1,
+                Intent(this, UsbLinkForegroundService::class.java).setAction(ACTION_STOP_MIRROR).putExtra(EXTRA_OPEN_AA, true),
+                PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(0, getString(R.string.mirror_back_to_aa), backToAa)
+        }
+        return builder.addAction(0, getString(R.string.fgs_stop), stopIntent).build()
     }
 
     private fun cableStatus(snapshot: ConnectionSnapshot): String = when (snapshot.phase) {
@@ -655,6 +704,12 @@ class UsbLinkForegroundService : Service() {
             if (now < reconnectUntil) null else WirelessPhase.FAILED
 
         const val ACTION_START_WIRELESS = "dev.caraalink.service.action.START_WIRELESS"
+        const val ACTION_START_MIRROR = "dev.caraalink.service.action.START_MIRROR"
+        const val ACTION_STOP_MIRROR = "dev.caraalink.service.action.STOP_MIRROR"
+        const val ACTION_MIRROR_DENIED = "dev.caraalink.service.action.MIRROR_DENIED"
+        const val EXTRA_RESULT_CODE = "result_code"
+        const val EXTRA_RESULT_DATA = "result_data"
+        const val EXTRA_OPEN_AA = "open_aa"
         const val EXTRA_CAR_ADDRESS = "car_address"
         const val EXTRA_CAR_NAME = "car_name"
     }

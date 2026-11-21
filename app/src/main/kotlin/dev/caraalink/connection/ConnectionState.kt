@@ -37,6 +37,8 @@ data class ConnectionSnapshot(
     val suggestion: NearbyDevice? = null,
     /** The car the wireless search is for; kept after NOT_FOUND or FAILED so Try again retries it. */
     val target: RememberedCar? = null,
+    /** The phone's own screen is on the car instead of Android Auto. */
+    val mirroring: Boolean = false,
 )
 
 /**
