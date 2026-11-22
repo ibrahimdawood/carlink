@@ -117,4 +117,25 @@
     <string name="settings_on">شغّال</string>
     <string name="settings_off">مقفول</string>
     <string name="fgs_mirroring">شاشة موبايلك على العربية</string>
+    <!-- Full-screen apps on the car (Shizuku) -->
+    <string name="car_desktop">تطبيقات العربية</string>
+    <string name="car_desktop_setup_title">جهّز تطبيقات العربية على موبايلك</string>
+    <string name="car_desktop_setup_body">التطبيقات بالشاشة الكاملة محتاجة Shizuku شغّال على موبايلك. افتح CarLink على الموبايل عشان تجهّزه.</string>
+    <string name="desktop_start">التطبيقات بالشاشة الكاملة على العربية</string>
+    <string name="desktop_active_body">تطبيقاتك على شاشة العربية. اختار واحد من هناك، وزرار Home في العربية بيرجّع القائمة.</string>
+    <string name="desktop_open_failed">ما قدرناش نفتح %1$s على العربية</string>
+    <string name="desktop_setup_title">تجهيز التطبيقات بالشاشة الكاملة</string>
+    <string name="desktop_not_installed">التطبيقات بالشاشة الكاملة محتاجة تطبيق Shizuku المجاني. نزّله وشغّله وارجع هنا.</string>
+    <string name="desktop_not_running">Shizuku مش شغّال. افتح Shizuku وشغّله عن طريق «تصحيح الأخطاء اللاسلكي». الخطوة دي بتتعاد بعد كل ريستارت للموبايل.</string>
+    <string name="desktop_no_permission">اسمح لـ CarLink جوه Shizuku. اضغط «سماح» وبعدين «السماح دائمًا».</string>
+    <string name="desktop_install">نزّل Shizuku</string>
+    <string name="desktop_open_shizuku">افتح Shizuku</string>
+    <string name="desktop_allow">سماح</string>
+    <string name="settings_desktop">التطبيقات بالشاشة الكاملة (Shizuku)</string>
+    <string name="desktop_status_ready">جاهز</string>
+    <string name="desktop_status_not_installed">Shizuku مش متنزّل</string>
+    <string name="desktop_status_not_running">Shizuku مش شغّال</string>
+    <string name="desktop_status_no_permission">محتاج سماح في Shizuku</string>
+    <string name="fgs_desktop">تطبيقاتك على شاشة العربية</string>
+    <string name="cancel">إلغاء</string>
 </resources>

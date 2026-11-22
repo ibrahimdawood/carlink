@@ -22,6 +22,8 @@ enum class CarScreen {
     WAITING, STARTING, NOT_RESPONDING, CLOSED,
     /** The driver asked for the phone screen; waiting for them to allow sharing on the phone. */
     MIRROR_ASK,
+    /** The driver asked for full-screen apps, but Shizuku isn't ready on the phone. */
+    DESKTOP_SETUP,
 }
 
 /** Full-screen car message shown whenever Android Auto isn't on the car screen. */
@@ -31,6 +33,7 @@ class CarStatusPresentation(
     private val screen: CarScreen,
     private val onOpenAa: () -> Unit,
     private val onMirror: () -> Unit,
+    private val onDesktop: () -> Unit,
 ) : Presentation(context, display) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,9 +49,11 @@ class CarStatusPresentation(
             CarScreen.NOT_RESPONDING -> R.string.car_not_responding_title
             CarScreen.CLOSED -> R.string.car_closed_title
             CarScreen.MIRROR_ASK -> R.string.car_mirror_ask_title
+            CarScreen.DESKTOP_SETUP -> R.string.car_desktop_setup_title
         }
         // Amber when the driver has to act, as on the phone.
-        val needsDriver = screen == CarScreen.WAITING || screen == CarScreen.NOT_RESPONDING || screen == CarScreen.MIRROR_ASK
+        val needsDriver = screen == CarScreen.WAITING || screen == CarScreen.NOT_RESPONDING || screen == CarScreen.MIRROR_ASK ||
+            screen == CarScreen.DESKTOP_SETUP
         column.addView(text(title, 30f, if (needsDriver) AMBER else TEXT, bold = true))
         when (screen) {
             CarScreen.WAITING -> {
@@ -68,9 +73,22 @@ class CarStatusPresentation(
                 column.addView(text(R.string.car_mirror_ask_body, 18f, MUTED))
                 column.addView(openButton(), spaced(top = dp(28)))
             }
+            CarScreen.DESKTOP_SETUP -> {
+                column.addView(text(R.string.car_desktop_setup_body, 18f, MUTED))
+                column.addView(openButton(), spaced(top = dp(28)))
+            }
         }
         // The phone's own screen works without Android Auto's server, so offer it whenever AA isn't starting.
-        if (screen != CarScreen.STARTING && screen != CarScreen.MIRROR_ASK) column.addView(mirrorButton(), spaced(top = dp(20)))
+        if (screen != CarScreen.STARTING && screen != CarScreen.MIRROR_ASK) {
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            row.addView(outlineButton(R.string.car_desktop) { onDesktop() })
+            row.addView(outlineButton(R.string.car_mirror) { onMirror() },
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginStart = dp(16) })
+            column.addView(row, spaced(top = dp(20)))
+        }
         setContentView(FrameLayout(context).apply {
             setBackgroundColor(BACKGROUND)
             addView(column, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -125,8 +143,8 @@ class CarStatusPresentation(
         setOnClickListener { onOpenAa() }
     }
 
-    private fun mirrorButton() = TextView(context).apply {
-        setText(R.string.car_mirror)
+    private fun outlineButton(label: Int, onClick: () -> Unit) = TextView(context).apply {
+        setText(label)
         textSize = 20f
         setTextColor(ACCENT)
         typeface = Typeface.DEFAULT_BOLD
@@ -137,7 +155,7 @@ class CarStatusPresentation(
             cornerRadius = dp(40).toFloat()
         }
         isClickable = true
-        setOnClickListener { onMirror() }
+        setOnClickListener { onClick() }
     }
 
     private fun spaced(width: Int = ViewGroup.LayoutParams.WRAP_CONTENT, height: Int = ViewGroup.LayoutParams.WRAP_CONTENT, top: Int = dp(16)) =

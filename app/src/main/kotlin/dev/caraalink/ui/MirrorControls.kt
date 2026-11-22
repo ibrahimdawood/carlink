@@ -67,3 +67,57 @@ fun MirrorAction(mirroring: Boolean) {
         )
     }
 }
+
+private fun desktopIntent(context: Context, action: String) =
+    Intent(context, UsbLinkForegroundService::class.java).setAction(action)
+
+/** Text for each Shizuku setup step: what's wrong, and the button that fixes it. */
+fun desktopSetupText(status: dev.caraalink.desktop.Desktop.Status): Pair<Int, Int> = when (status) {
+    dev.caraalink.desktop.Desktop.Status.NOT_INSTALLED -> R.string.desktop_not_installed to R.string.desktop_install
+    dev.caraalink.desktop.Desktop.Status.NOT_RUNNING -> R.string.desktop_not_running to R.string.desktop_open_shizuku
+    dev.caraalink.desktop.Desktop.Status.NO_PERMISSION -> R.string.desktop_no_permission to R.string.desktop_allow
+    dev.caraalink.desktop.Desktop.Status.READY -> R.string.desktop_status_ready to R.string.desktop_start
+}
+
+fun desktopStatusLabel(status: dev.caraalink.desktop.Desktop.Status): Int = when (status) {
+    dev.caraalink.desktop.Desktop.Status.NOT_INSTALLED -> R.string.desktop_status_not_installed
+    dev.caraalink.desktop.Desktop.Status.NOT_RUNNING -> R.string.desktop_status_not_running
+    dev.caraalink.desktop.Desktop.Status.NO_PERMISSION -> R.string.desktop_status_no_permission
+    dev.caraalink.desktop.Desktop.Status.READY -> R.string.desktop_status_ready
+}
+
+/** Home's full-screen apps action: start it, go back to Android Auto, or walk through the Shizuku setup. */
+@Composable
+fun DesktopAction(active: Boolean) {
+    val context = LocalContext.current
+    var setup by remember { mutableStateOf<dev.caraalink.desktop.Desktop.Status?>(null) }
+    if (active) {
+        GlowButton(stringResource(R.string.mirror_back_to_aa), {
+            context.startService(desktopIntent(context, UsbLinkForegroundService.ACTION_STOP_DESKTOP).putExtra(UsbLinkForegroundService.EXTRA_OPEN_AA, true))
+        })
+    } else {
+        DashLink(stringResource(R.string.desktop_start)) {
+            val status = dev.caraalink.desktop.Desktop.status(context)
+            if (status == dev.caraalink.desktop.Desktop.Status.READY) {
+                context.startService(desktopIntent(context, UsbLinkForegroundService.ACTION_START_DESKTOP))
+            } else {
+                setup = status
+            }
+        }
+    }
+    setup?.let { status ->
+        val (body, fix) = desktopSetupText(status)
+        AlertDialog(
+            onDismissRequest = { setup = null },
+            title = { Text(stringResource(R.string.desktop_setup_title)) },
+            text = { Text(stringResource(body)) },
+            confirmButton = {
+                TextButton({
+                    setup = null
+                    dev.caraalink.desktop.Desktop.fixNextStep(context)
+                }) { Text(stringResource(fix)) }
+            },
+            dismissButton = { TextButton({ setup = null }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+}

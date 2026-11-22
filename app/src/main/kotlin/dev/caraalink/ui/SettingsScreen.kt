@@ -75,6 +75,7 @@ fun SettingsScreen(onBack: () -> Unit, onHelp: () -> Unit, onAbout: () -> Unit) 
             SettingsRow(rememberVectorPainter(Icons.Rounded.Refresh), stringResource(R.string.settings_updates)) {
                 UpdateChecker.checkNow(context, manual = true)
             }
+            DesktopRow()
             TouchControlRow()
             SettingsRow(painterResource(R.drawable.ic_help), stringResource(R.string.help), onHelp)
             SettingsRow(rememberVectorPainter(Icons.Rounded.Info), stringResource(R.string.settings_about), onAbout)
@@ -114,6 +115,36 @@ private fun DashGroup(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(shape).background(Dash.Tile).border(1.dp, Dash.TileBorder, shape),
         content = content,
+    )
+}
+
+/** Full-screen apps: where the Shizuku setup stands, and the next step on tap. */
+@Composable
+private fun DesktopRow() {
+    val context = LocalContext.current
+    var status by remember { mutableStateOf(dev.caraalink.desktop.Desktop.status(context)) }
+    val lifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) status = dev.caraalink.desktop.Desktop.status(context)
+        }
+        lifecycle.addObserver(observer)
+        // Shizuku's Allow dialog doesn't pause this screen, so also listen for its answer.
+        val onResult = rikka.shizuku.Shizuku.OnRequestPermissionResultListener { _, _ ->
+            status = dev.caraalink.desktop.Desktop.status(context)
+        }
+        rikka.shizuku.Shizuku.addRequestPermissionResultListener(onResult)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            rikka.shizuku.Shizuku.removeRequestPermissionResultListener(onResult)
+        }
+    }
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_desktop), style = MaterialTheme.typography.bodyLarge) },
+        supportingContent = { Text(stringResource(dev.caraalink.ui.desktopStatusLabel(status))) },
+        leadingContent = { Icon(painterResource(R.drawable.ic_car), contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable { dev.caraalink.desktop.Desktop.fixNextStep(context) },
     )
 }
 

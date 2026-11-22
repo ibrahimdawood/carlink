@@ -32,6 +32,7 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
+        aidl = true
     }
 
     composeOptions {
@@ -77,6 +78,9 @@ android {
 
 dependencies {
     implementation(project(":protocol"))
+    // Full-screen apps on the car: Shizuku gives a helper process shell rights (like adb).
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.preference:preference-ktx:1.2.1")

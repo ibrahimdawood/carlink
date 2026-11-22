@@ -39,6 +39,8 @@ data class ConnectionSnapshot(
     val target: RememberedCar? = null,
     /** The phone's own screen is on the car instead of Android Auto. */
     val mirroring: Boolean = false,
+    /** Full-screen apps (Shizuku) are on the car instead of Android Auto. */
+    val desktop: Boolean = false,
 )
 
 /**

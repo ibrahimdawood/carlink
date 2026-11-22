@@ -122,4 +122,25 @@
     <string name="settings_on">On</string>
     <string name="settings_off">Off</string>
     <string name="fgs_mirroring">Your phone screen is on the car</string>
+    <!-- Full-screen apps on the car (Shizuku) -->
+    <string name="car_desktop">Car apps</string>
+    <string name="car_desktop_setup_title">Set up car apps on your phone</string>
+    <string name="car_desktop_setup_body">Full-screen apps need Shizuku running on your phone. Open CarLink on the phone to set it up.</string>
+    <string name="desktop_start">Full-screen apps on the car</string>
+    <string name="desktop_active_body">Your apps are on the car screen. Pick one there; the car\'s Home key brings the list back.</string>
+    <string name="desktop_open_failed">Couldn\'t open %1$s on the car</string>
+    <string name="desktop_setup_title">Set up full-screen apps</string>
+    <string name="desktop_not_installed">Full-screen apps need the free Shizuku app. Install it, start it, then come back.</string>
+    <string name="desktop_not_running">Shizuku isn\'t running. Open Shizuku and start it with Wireless debugging. You do this again after every phone restart.</string>
+    <string name="desktop_no_permission">Allow CarLink in Shizuku. Tap Allow, then Allow all the time.</string>
+    <string name="desktop_install">Get Shizuku</string>
+    <string name="desktop_open_shizuku">Open Shizuku</string>
+    <string name="desktop_allow">Allow</string>
+    <string name="settings_desktop">Full-screen apps (Shizuku)</string>
+    <string name="desktop_status_ready">Ready</string>
+    <string name="desktop_status_not_installed">Shizuku not installed</string>
+    <string name="desktop_status_not_running">Shizuku not running</string>
+    <string name="desktop_status_no_permission">Needs permission in Shizuku</string>
+    <string name="fgs_desktop">Your apps are on the car screen</string>
+    <string name="cancel">Cancel</string>
 </resources>

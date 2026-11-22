@@ -143,6 +143,8 @@ class UsbLinkForegroundService : Service() {
             ACTION_START_MIRROR -> beginMirror(intent)
             ACTION_STOP_MIRROR -> session?.stopMirror(openAa = intent.getBooleanExtra(EXTRA_OPEN_AA, false))
             ACTION_MIRROR_DENIED -> session?.onMirrorDenied()
+            ACTION_START_DESKTOP -> session?.startDesktop()
+            ACTION_STOP_DESKTOP -> session?.stopDesktop(openAa = intent.getBooleanExtra(EXTRA_OPEN_AA, false))
             ACTION_STOP -> {
                 Log.i(TAG, "onStartCommand: ACTION_STOP")
                 stopping = true
@@ -656,13 +658,21 @@ class UsbLinkForegroundService : Service() {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_bridge)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText(if (snapshot.mirroring) getString(R.string.fgs_mirroring) else statusText)
+            .setContentText(
+                when {
+                    snapshot.mirroring -> getString(R.string.fgs_mirroring)
+                    snapshot.desktop -> getString(R.string.fgs_desktop)
+                    else -> statusText
+                },
+            )
             .setOngoing(true)
             .setContentIntent(openAppIntent)
-        if (snapshot.mirroring) {
+        if (snapshot.mirroring || snapshot.desktop) {
             val backToAa = PendingIntent.getService(
                 this, 1,
-                Intent(this, UsbLinkForegroundService::class.java).setAction(ACTION_STOP_MIRROR).putExtra(EXTRA_OPEN_AA, true),
+                Intent(this, UsbLinkForegroundService::class.java)
+                    .setAction(if (snapshot.desktop) ACTION_STOP_DESKTOP else ACTION_STOP_MIRROR)
+                    .putExtra(EXTRA_OPEN_AA, true),
                 PendingIntent.FLAG_IMMUTABLE,
             )
             builder.addAction(0, getString(R.string.mirror_back_to_aa), backToAa)
@@ -707,6 +717,8 @@ class UsbLinkForegroundService : Service() {
         const val ACTION_START_MIRROR = "dev.caraalink.service.action.START_MIRROR"
         const val ACTION_STOP_MIRROR = "dev.caraalink.service.action.STOP_MIRROR"
         const val ACTION_MIRROR_DENIED = "dev.caraalink.service.action.MIRROR_DENIED"
+        const val ACTION_START_DESKTOP = "dev.caraalink.service.action.START_DESKTOP"
+        const val ACTION_STOP_DESKTOP = "dev.caraalink.service.action.STOP_DESKTOP"
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
         const val EXTRA_OPEN_AA = "open_aa"

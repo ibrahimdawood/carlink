@@ -25,8 +25,12 @@ class CarDisplay(
     private val context: Context,
     private val onOpenAa: () -> Unit,
     private val onMirror: () -> Unit,
+    private val onDesktop: () -> Unit,
 ) {
-    enum class Mode { STATUS, AA, MIRROR }
+    enum class Mode { STATUS, AA, MIRROR, DESKTOP }
+
+    /** Modes where something outside this display (screen capture, the Shizuku helper) renders into the encoder. */
+    private val handedOff get() = mode == Mode.MIRROR || mode == Mode.DESKTOP
 
     private val main = Handler(Looper.getMainLooper())
     private var carDisplay: VirtualDisplay? = null
@@ -55,7 +59,7 @@ class CarDisplay(
         frameHeight = h
         val dpi = dpiFor(w, h)
         // While mirroring, the phone's screen owns the encoder surface.
-        val ownSurface = if (mode == Mode.MIRROR) null else surface
+        val ownSurface = if (handedOff) null else surface
         val existing = carDisplay
         if (existing == null) {
             val dm = context.getSystemService(DisplayManager::class.java)
@@ -68,11 +72,18 @@ class CarDisplay(
             it.resize(w, h, dpi)
             it.surface = surface
         }
+        desktopShell?.let {
+            runCatching {
+                it.resize(w, h, dpi)
+                it.setSurface(surface)
+            }.onFailure { e -> Log.w(TAG, "car apps display resize failed", e) }
+        }
         showCurrent()
     }
 
     fun showStatus(screen: CarScreen) = main.post {
         leaveMirror()
+        leaveDesktop()
         this.screen = screen
         mode = Mode.STATUS
         showCurrent()
@@ -85,6 +96,7 @@ class CarDisplay(
      */
     fun showMirror(projection: MediaProjection, onEnded: () -> Unit) = main.post {
         leaveMirror()
+        leaveDesktop()
         // Mode first: the Android Auto presentation ends its session only on a real exit from AA.
         mode = Mode.MIRROR
         // Leaving the mirror goes to Closed, and nothing reopens Android Auto behind it meanwhile.
@@ -116,6 +128,45 @@ class CarDisplay(
         if (mirrorDisplay == null) main.post { onEnded() }
     }
 
+    private var desktopShell: dev.caraalink.desktop.IShellDisplay? = null
+
+    /**
+     * Full-screen apps: the Shizuku helper makes a car-sized display on the encoder
+     * surface and apps open on it. [onReady] gets that display's id; [onFailed] runs
+     * when the helper couldn't make one. Main thread for both.
+     */
+    fun showDesktop(shell: dev.caraalink.desktop.IShellDisplay, onReady: (Int) -> Unit, onFailed: (String) -> Unit) = main.post {
+        leaveMirror()
+        leaveDesktop()
+        mode = Mode.DESKTOP
+        screen = CarScreen.CLOSED
+        presentation?.dismiss()
+        presentation = null
+        carDisplay?.surface = null
+        val w = frameWidth.takeIf { it > 0 } ?: 1280
+        val h = frameHeight.takeIf { it > 0 } ?: 720
+        val id = try {
+            shell.create(encoderSurface, w, h, dpiFor(w, h))
+        } catch (e: Exception) {
+            Log.e(TAG, "car apps display failed", e)
+            -1
+        }
+        if (id < 0) {
+            carDisplay?.surface = encoderSurface
+            onFailed("display not created")
+            return@post
+        }
+        desktopShell = shell
+        onReady(id)
+    }
+
+    private fun leaveDesktop() {
+        val shell = desktopShell ?: return
+        desktopShell = null
+        runCatching { shell.release() }
+        carDisplay?.surface = encoderSurface
+    }
+
     /** Ends screen sharing and gives the encoder surface back to the car display. */
     private fun leaveMirror() {
         val p = projection ?: return
@@ -142,6 +193,7 @@ class CarDisplay(
         onTouch: (pointers: List<Triple<Int, Int, Int>>, actionIndex: Int, action: Int) -> Unit,
     ) = main.post {
         leaveMirror()
+        leaveDesktop()
         aaVideoSize = videoWidth to videoHeight
         aaMargin = widthMargin to heightMargin
         aaOnSurface = onSurface
@@ -156,7 +208,7 @@ class CarDisplay(
     private var aaOnTouch: ((pointers: List<Triple<Int, Int, Int>>, actionIndex: Int, action: Int) -> Unit)? = null
 
     private fun showCurrent() {
-        if (mode == Mode.MIRROR) return
+        if (handedOff) return
         val display = carDisplay?.display ?: return
         presentation?.dismiss()
         presentation = try {
@@ -164,7 +216,7 @@ class CarDisplay(
                 mode == Mode.AA && aaVideoSize != null -> aaPresentation(display)
                 else -> {
                     mode = Mode.STATUS
-                    CarStatusPresentation(context, display, screen, onOpenAa, onMirror)
+                    CarStatusPresentation(context, display, screen, onOpenAa, onMirror, onDesktop)
                 }
             }.also { it.show() }
         } catch (e: WindowManager.InvalidDisplayException) {
@@ -198,6 +250,7 @@ class CarDisplay(
 
     fun release() = main.post {
         leaveMirror()
+        leaveDesktop()
         presentation?.dismiss()
         presentation = null
         carDisplay?.release()

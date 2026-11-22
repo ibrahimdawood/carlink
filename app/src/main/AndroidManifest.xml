@@ -35,6 +35,12 @@
          one-click head-unit-server start. -->
     <queries>
         <package android:name="com.google.android.projection.gearhead" />
+        <!-- Full-screen apps on the car: Shizuku, and the apps the car launcher lists. -->
+        <package android:name="moe.shizuku.privileged.api" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application
@@ -90,6 +96,27 @@
             android:name=".service.UsbLinkForegroundService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice|microphone|location|mediaProjection" />
+
+        <!-- The car's home screen in full-screen apps mode. Exported because the Shizuku helper
+             opens it on the car display with `am start`, as the shell user. -->
+        <activity
+            android:name=".desktop.CarLauncherActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|density|uiMode"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:taskAffinity="${applicationId}.car"
+            android:theme="@style/Theme.CarAALink" />
+
+        <!-- Lets Shizuku hand CarLink its binder. -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
         <!-- Asks for screen sharing; invisible, the system prompt is all the driver sees. -->
         <activity

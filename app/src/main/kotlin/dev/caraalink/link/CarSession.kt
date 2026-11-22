@@ -36,7 +36,7 @@ class CarSession(
     private var encoder: CarVideoEncoder? = null
     private var pxc: PxcChannel? = null
     private val features = CarFeatures(context)
-    private val display = CarDisplay(context, onOpenAa = { openAndroidAuto() }, onMirror = { askForMirror() })
+    private val display = CarDisplay(context, onOpenAa = { openAndroidAuto() }, onMirror = { askForMirror() }, onDesktop = { startDesktop() })
 
     /** The driver left Android Auto on purpose; stay on Closed until they tap to reopen. */
     private fun closeAa() {
@@ -111,7 +111,7 @@ class CarSession(
 
     private fun release() {
         released = true
-        ConnectionStateHolder.update { it.copy(mirroring = false) }
+        ConnectionStateHolder.update { it.copy(mirroring = false, desktop = false) }
         aaWatchdog.removeCallbacksAndMessages(null)
         pollThread?.interrupt()
         pollThread = null
@@ -331,7 +331,7 @@ class CarSession(
     }
 
     private fun showAaSurface() {
-        if (display.mode == CarDisplay.Mode.MIRROR) {
+        if (display.mode == CarDisplay.Mode.MIRROR || display.mode == CarDisplay.Mode.DESKTOP) {
             // Android Auto finished starting after the driver switched to the phone screen.
             logger.log("AA ready while mirroring -- closing it")
             dev.caraalink.aa.AaSessionProbe.active?.stop()
@@ -447,12 +447,23 @@ class CarSession(
         // Car coordinates are in its own screen size; the encoder may be a few pixels smaller.
         val fx = x * enc.width.toFloat() / c.width
         val fy = y * enc.height.toFloat() / c.height
-        if (display.mode == CarDisplay.Mode.MIRROR) mirrorTouch(action, enc.width, enc.height, fx, fy)
-        else display.touch(action, fx, fy)
+        when (display.mode) {
+            CarDisplay.Mode.MIRROR -> mirrorTouch(action, enc.width, enc.height, fx, fy)
+            // The car-apps display is the encoder's size, so frame pixels are display pixels.
+            CarDisplay.Mode.DESKTOP -> runCatching { dev.caraalink.desktop.Desktop.shell?.touch(action, fx, fy) }
+            else -> display.touch(action, fx, fy)
+        }
     }
 
     override fun onKey(key: Int) {
         logger.log("car key $key")
+        if (display.mode == CarDisplay.Mode.DESKTOP) {
+            when (key) {
+                MirrorControlChannel.KEY_BACK -> runCatching { dev.caraalink.desktop.Desktop.shell?.key(android.view.KeyEvent.KEYCODE_BACK) }
+                MirrorControlChannel.KEY_HOME -> showCarLauncher()
+            }
+            return
+        }
         if (display.mode == CarDisplay.Mode.MIRROR) {
             when (key) {
                 MirrorControlChannel.KEY_BACK -> dev.caraalink.mirror.MirrorInputService.back()
@@ -485,7 +496,7 @@ class CarSession(
         pollThread = null
         AndroidAutoServer.cancelNeedsTap(context)
         display.showMirror(projection) { stopMirror(openAa = false) }
-        ConnectionStateHolder.update { it.copy(mirroring = true) }
+        ConnectionStateHolder.update { it.copy(mirroring = true, desktop = false) }
     }
 
     /** Back from the phone screen to Closed, or straight to Android Auto with [openAa]. */
@@ -523,6 +534,65 @@ class CarSession(
     }
 
     private var lastMirrorTouch: dev.caraalink.mirror.MirrorTouch.Point? = null
+
+    // --- full-screen apps (Shizuku) ---
+
+    /** From the car's button or the app: car-sized display with the CarLink launcher on it. */
+    fun startDesktop() {
+        main.post {
+            if (released) return@post
+            val status = dev.caraalink.desktop.Desktop.status(context)
+            logger.log("car apps: asked, Shizuku $status")
+            if (status != dev.caraalink.desktop.Desktop.Status.READY) {
+                display.showStatus(CarScreen.DESKTOP_SETUP)
+                return@post
+            }
+            display.showStatus(CarScreen.STARTING)
+            dev.caraalink.desktop.Desktop.connect(context) { shell ->
+                if (released) return@connect
+                if (shell == null) {
+                    logger.log("car apps: helper didn't start")
+                    display.showStatus(CarScreen.DESKTOP_SETUP)
+                    return@connect
+                }
+                aaWatchdog.removeCallbacks(aaWatchdogTick)
+                pollThread?.interrupt()
+                pollThread = null
+                AndroidAutoServer.cancelNeedsTap(context)
+                display.showDesktop(
+                    shell,
+                    onReady = { id ->
+                        logger.log("car apps: display $id")
+                        ConnectionStateHolder.update { it.copy(desktop = true, mirroring = false) }
+                        showCarLauncher()
+                    },
+                    onFailed = { why ->
+                        logger.log("car apps: $why")
+                        display.showStatus(CarScreen.DESKTOP_SETUP)
+                    },
+                )
+            }
+        }
+    }
+
+    private fun showCarLauncher() {
+        dev.caraalink.desktop.Desktop.launch("${context.packageName}/${dev.caraalink.desktop.CarLauncherActivity::class.java.name}") {
+            logger.log("car apps: launcher didn't open: $it")
+        }
+    }
+
+    /** Back from full-screen apps to Closed, or straight to Android Auto with [openAa]. */
+    fun stopDesktop(openAa: Boolean) {
+        main.post {
+            if (released) return@post
+            val active = display.mode == CarDisplay.Mode.DESKTOP
+            if (!active && display.screen != CarScreen.DESKTOP_SETUP) return@post
+            logger.log("car apps: stopped (openAa=$openAa)")
+            display.showStatus(CarScreen.CLOSED)
+            ConnectionStateHolder.update { it.copy(desktop = false) }
+            if (openAa) openAndroidAuto()
+        }
+    }
 
     override fun onDataStreamOpen(stream: MirrorStream) {
         synchronized(frameLock) {
@@ -652,7 +722,7 @@ class CarSession(
 
         /** Automatic reopens (restarts, retries, polls) must not undo an unplug or a deliberate exit. */
         internal fun mayAutoOpenAa(released: Boolean, screen: CarScreen): Boolean =
-            !released && screen != CarScreen.CLOSED && screen != CarScreen.MIRROR_ASK
+            !released && screen != CarScreen.CLOSED && screen != CarScreen.MIRROR_ASK && screen != CarScreen.DESKTOP_SETUP
 
         /** Reconnect backoff that long means Android Auto's server is gone, not just restarting. */
         internal fun lostServer(connectionActive: Boolean, inactiveForMs: Long): Boolean =

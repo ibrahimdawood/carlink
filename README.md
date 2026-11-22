@@ -65,6 +65,17 @@ Besides Android Auto, CarLink can show your phone's own screen on the car, so yo
 - **Fill the screen:** a phone held upright shows in the middle with black bars at the sides. Turn the phone sideways to fill more of the car screen.
 - **Back to Android Auto:** tap **Back to Android Auto** in the app or in the notification, or press the car's Home key and then Open Android Auto.
 
+## Full-screen apps on the car (Shizuku)
+
+This opens apps on their own car-sized screen, so they fill the whole car display, and car touches go straight to them. The phone stays free in your hand.
+
+1. Install [Shizuku](https://shizuku.rikka.app/download/) and start it with Wireless debugging (Shizuku shows the steps). After every phone restart, start it again.
+2. In CarLink, open Settings → **Full-screen apps (Shizuku)** and tap it until it says Ready (CarLink asks for permission in Shizuku).
+3. With the car connected, tap **Full-screen apps on the car** on the phone, or **Car apps** on the car screen.
+4. The car shows your apps. Tap one to open it. The car's Home key brings the list back, its Back key is Back.
+
+One finger only: the car sends single touches. The keyboard opens on the phone. Some apps may not like the wide screen, and protected video can show black.
+
 ## If something goes wrong
 
 - **"Android Auto needs a tap":** Android Auto's server stops when the phone restarts. Tap the notification, then ⋮ and Start head unit server.
