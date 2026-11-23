@@ -33,22 +33,48 @@ class ShellDisplayService(context: Context) : IShellDisplay.Stub() {
     constructor() : this(systemContext())
 
     private val shellContext: Context = ShellContext(context)
+
+    /** CarLink's own log folder; the shell user may write there, and "Send logs" zips it. */
+    private val logFile = java.io.File("/sdcard/Android/data/${context.packageName}/files/logs/shell-helper.log")
+
+    private fun log(msg: String, e: Throwable? = null) {
+        Log.i(TAG, msg, e)
+        runCatching {
+            logFile.parentFile?.mkdirs()
+            if (logFile.length() > 512 * 1024) logFile.delete()
+            logFile.appendText("${java.util.Date()} $msg${e?.let { "\n" + Log.getStackTraceString(it) } ?: ""}\n")
+        }
+    }
+
+    init {
+        log("helper up: uid ${Process.myUid()}, Android ${Build.VERSION.SDK_INT}")
+        Thread.setDefaultUncaughtExceptionHandler { _, e -> log("helper crashed", e) }
+    }
     private val lock = Any()
     private var display: VirtualDisplay? = null
     @Volatile private var displayId = -1
     private var downTime = 0L
+    private var injectFailLogged = false
 
     override fun create(surface: Surface?, width: Int, height: Int, dpi: Int): Int = synchronized(lock) {
         releaseLocked()
-        val dm = DisplayManager::class.java.getDeclaredConstructor(Context::class.java)
-            .apply { isAccessible = true }
-            .newInstance(shellContext)
-        val vd = dm.createVirtualDisplay("CarLink", width, height, dpi, surface, displayFlags())
-            ?: return -1
-        display = vd
-        displayId = vd.display.displayId
-        Log.i(TAG, "display $displayId ${width}x$height@$dpi")
-        displayId
+        try {
+            val dm = DisplayManager::class.java.getDeclaredConstructor(Context::class.java)
+                .apply { isAccessible = true }
+                .newInstance(shellContext)
+            val vd = dm.createVirtualDisplay("CarLink", width, height, dpi, surface, displayFlags())
+            if (vd == null) {
+                log("display not created (null)")
+                return -1
+            }
+            display = vd
+            displayId = vd.display.displayId
+            log("display $displayId ${width}x$height@$dpi flags=${displayFlags()}")
+            displayId
+        } catch (e: Throwable) {
+            log("display failed", e)
+            -1
+        }
     }
 
     override fun resize(width: Int, height: Int, dpi: Int) = synchronized(lock) {
@@ -79,8 +105,10 @@ class ShellDisplayService(context: Context) : IShellDisplay.Stub() {
                 .start()
             val out = p.inputStream.bufferedReader().readText()
             p.waitFor()
+            log("am start $component on $id: ${out.trim()}")
             if (out.contains("Error", ignoreCase = true) || out.contains("Exception")) out.trim() else null
         } catch (e: Exception) {
+            log("am start failed", e)
             e.toString()
         }
     }
@@ -125,7 +153,8 @@ class ShellDisplayService(context: Context) : IShellDisplay.Stub() {
             setDisplayId.invoke(event, display)
             injector(event)
         } catch (e: Exception) {
-            Log.w(TAG, "inject failed", e)
+            if (!injectFailLogged) log("inject failed", e)
+            injectFailLogged = true
         }
     }
 

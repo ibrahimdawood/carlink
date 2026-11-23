@@ -696,7 +696,8 @@ class UsbLinkForegroundService : Service() {
         /** QDLink ignores a cable session within 6 s of the last one (Shams-eldin's Emgrand Auto, from QDLink's code). */
         private val QD_RECONNECT_DELAYS_MS = longArrayOf(6_000, 6_000, 10_000, 30_000, 60_000)
         private const val OPEN_TO_RECONNECT_ID = 4
-        private const val SEARCH_TIMEOUT_MS = 30_000L
+        /** Long enough to outlast a Wi-Fi Direct that answers BUSY for a while after the last drive. */
+        private const val SEARCH_TIMEOUT_MS = 60_000L
         private const val CONNECT_TIMEOUT_MS = 30_000L
         private const val RECONNECT_WINDOW_MS = 120_000L
         private const val HELLO_WAIT_MS = 3_000L

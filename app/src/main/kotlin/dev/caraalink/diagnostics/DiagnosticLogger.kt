@@ -65,7 +65,7 @@ class DiagnosticLogger(private val context: Context, private val tag: String) {
         latestLogFile()
         val dir = File(context.cacheDir, "reports").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
-        val zip = File(dir, "AABridge-logs-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.zip")
+        val zip = File(dir, "CarLink-logs-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.zip")
         ZipOutputStream(zip.outputStream()).use { out ->
             logDir(context).listFiles()?.sortedBy { it.name }?.forEach { f ->
                 out.putNextEntry(ZipEntry(f.name))

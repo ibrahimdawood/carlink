@@ -66,7 +66,13 @@ class WirelessLink(
     private val rescan = object : Runnable {
         override fun run() {
             if (!scanning || closed) return
-            manager.discoverPeers(channel, logged("scan"))
+            manager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() = logger.log("scan: ok")
+                override fun onFailure(reason: Int) {
+                    logger.log("scan failed: reason $reason")
+                    if (reason == WifiP2pManager.BUSY && scanning && !closed) clearBusy()
+                }
+            })
             main.postDelayed(this, RESCAN_MS)
         }
     }
@@ -82,6 +88,19 @@ class WirelessLink(
         } else {
             context.registerReceiver(receiver, filter)
         }
+    }
+
+    /**
+     * Wi-Fi Direct answers BUSY while an older search, connect or group is still open
+     * (seen for minutes on a Xiaomi phone). Drop those and search again soon instead of
+     * waiting out the whole rescan interval.
+     */
+    private fun clearBusy() {
+        manager.stopPeerDiscovery(channel, null)
+        manager.cancelConnect(channel, null)
+        if (!groupFormed) manager.removeGroup(channel, null)
+        main.removeCallbacks(rescan)
+        main.postDelayed(rescan, BUSY_RETRY_MS)
     }
 
     /** Scans now and again every 8 s until [connect] or [close]. */
@@ -189,6 +208,7 @@ class WirelessLink(
 
     companion object {
         private const val RESCAN_MS = 8_000L
+        private const val BUSY_RETRY_MS = 2_000L
 
         /** The phone's own address on the Wi-Fi Direct interface, so the hello leaves through it. */
         fun p2pAddress(): Inet4Address? = runCatching {

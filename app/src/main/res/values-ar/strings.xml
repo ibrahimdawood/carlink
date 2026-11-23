@@ -138,4 +138,6 @@
     <string name="desktop_status_no_permission">محتاج سماح في Shizuku</string>
     <string name="fgs_desktop">تطبيقاتك على شاشة العربية</string>
     <string name="cancel">إلغاء</string>
+    <string name="car_desktop_failed_title">تطبيقات العربية ما اشتغلتش</string>
+    <string name="car_desktop_failed_body">جرّب تاني، أو استخدم «شاشة الموبايل». وبعدين ابعت السجل من CarLink على موبايلك.</string>
 </resources>

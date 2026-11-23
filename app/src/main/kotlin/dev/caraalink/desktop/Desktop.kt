@@ -60,26 +60,40 @@ object Desktop {
         }
     }
 
-    /** Hands the helper to [onReady] on the main thread, starting it if needed; null when it can't start. */
-    fun connect(context: Context, onReady: (IShellDisplay?) -> Unit) = main.post {
+    /**
+     * Hands the helper to [onReady] on the main thread, starting it if needed; null when it
+     * can't start. Every caller gets an answer within [CONNECT_TIMEOUT_MS].
+     */
+    fun connect(context: Context, log: (String) -> Unit = {}, onReady: (IShellDisplay?) -> Unit) = main.post {
         shell?.let { if (it.asBinder().isBinderAlive) { onReady(it); return@post } }
+        shell = null
         if (status(context) != Status.READY) {
             onReady(null)
             return@post
         }
         waiting += onReady
+        main.postDelayed({
+            if (waiting.remove(onReady)) {
+                log("helper didn't answer in ${CONNECT_TIMEOUT_MS / 1000} s (Shizuku ${shizukuInfo()})")
+                // Next time start it from scratch instead of waiting on this bind forever.
+                unbind(context)
+                collectShellLog(context, log)
+                onReady(null)
+            }
+        }, CONNECT_TIMEOUT_MS)
         if (connection != null) return@post
+        log("starting helper (Shizuku ${shizukuInfo()})")
         val conn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
                 val s = binder?.takeIf { it.pingBinder() }?.let { IShellDisplay.Stub.asInterface(it) }
-                Log.i(TAG, "helper ${if (s != null) "connected" else "not usable"}")
+                log("helper ${if (s != null) "connected" else "not usable"}")
                 shell = s
                 if (s == null) connection = null
                 finish(s)
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
-                Log.w(TAG, "helper gone")
+                log("helper gone")
                 shell = null
                 connection = null
             }
@@ -88,13 +102,48 @@ object Desktop {
         try {
             Shizuku.bindUserService(args(context), conn)
         } catch (e: Exception) {
-            Log.w(TAG, "bindUserService failed", e)
+            log("bindUserService failed: $e")
             connection = null
             finish(null)
         }
-        // A helper that never answers mustn't leave the car waiting forever.
-        main.postDelayed({ if (waiting.isNotEmpty()) finish(shell) }, 15_000)
     }
+
+    private fun unbind(context: Context) {
+        val conn = connection ?: return
+        connection = null
+        runCatching { Shizuku.unbindUserService(args(context), conn, true) }
+    }
+
+    private fun shizukuInfo(): String = runCatching {
+        "v${Shizuku.getVersion()}, uid ${Shizuku.getUid()}, server patch ${Shizuku.getServerPatchVersion()}"
+    }.getOrElse { "unknown: $it" }
+
+    /**
+     * The helper runs as another user, so its errors never reach CarLink's own log. Read them
+     * through Shizuku (as the shell user, which can see every app's log) and keep them.
+     */
+    private fun collectShellLog(context: Context, log: (String) -> Unit) {
+        Thread({
+            val text = runCatching {
+                val newProcess = Shizuku::class.java.getDeclaredMethod(
+                    "newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java,
+                ).apply { isAccessible = true }
+                val p = newProcess.invoke(null, arrayOf("logcat", "-d", "-t", "1500", "-v", "time"), null, null) as Process
+                val out = p.inputStream.bufferedReader().readLines()
+                p.waitFor()
+                out.filter { line ->
+                    SHELL_LOG_HINTS.any { line.contains(it, ignoreCase = true) }
+                }.takeLast(120).joinToString("\n")
+            }.getOrElse { "couldn't read the helper's log: $it" }
+            log("helper log via Shizuku:\n${text.ifBlank { "(nothing about the helper)" }}")
+        }, "Desktop-shell-log").start()
+    }
+
+    private val SHELL_LOG_HINTS = listOf(
+        "cardisplay", "CarLinkShell", "ShellDisplay", "UserService", "ServiceStarter", "shizuku",
+        "AndroidRuntime", "FATAL", "carlink",
+    )
+    private const val CONNECT_TIMEOUT_MS = 15_000L
 
     private fun finish(s: IShellDisplay?) {
         val callbacks = waiting.toList()

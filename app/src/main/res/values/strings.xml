@@ -143,4 +143,6 @@
     <string name="desktop_status_no_permission">Needs permission in Shizuku</string>
     <string name="fgs_desktop">Your apps are on the car screen</string>
     <string name="cancel">Cancel</string>
+    <string name="car_desktop_failed_title">Car apps didn\'t start</string>
+    <string name="car_desktop_failed_body">Try again, or use Phone screen. Then send logs from CarLink on your phone.</string>
 </resources>

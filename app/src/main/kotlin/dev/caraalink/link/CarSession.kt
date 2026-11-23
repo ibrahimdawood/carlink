@@ -548,11 +548,11 @@ class CarSession(
                 return@post
             }
             display.showStatus(CarScreen.STARTING)
-            dev.caraalink.desktop.Desktop.connect(context) { shell ->
+            dev.caraalink.desktop.Desktop.connect(context, log = { logger.log("car apps: $it") }) { shell ->
                 if (released) return@connect
                 if (shell == null) {
                     logger.log("car apps: helper didn't start")
-                    display.showStatus(CarScreen.DESKTOP_SETUP)
+                    display.showStatus(CarScreen.DESKTOP_FAILED)
                     return@connect
                 }
                 aaWatchdog.removeCallbacks(aaWatchdogTick)
@@ -568,7 +568,7 @@ class CarSession(
                     },
                     onFailed = { why ->
                         logger.log("car apps: $why")
-                        display.showStatus(CarScreen.DESKTOP_SETUP)
+                        display.showStatus(CarScreen.DESKTOP_FAILED)
                     },
                 )
             }
@@ -578,6 +578,8 @@ class CarSession(
     private fun showCarLauncher() {
         dev.caraalink.desktop.Desktop.launch("${context.packageName}/${dev.caraalink.desktop.CarLauncherActivity::class.java.name}") {
             logger.log("car apps: launcher didn't open: $it")
+            // Don't leave the last Android Auto frame frozen on the car.
+            display.showStatus(CarScreen.DESKTOP_FAILED)
         }
     }
 
@@ -586,7 +588,7 @@ class CarSession(
         main.post {
             if (released) return@post
             val active = display.mode == CarDisplay.Mode.DESKTOP
-            if (!active && display.screen != CarScreen.DESKTOP_SETUP) return@post
+            if (!active && display.screen != CarScreen.DESKTOP_SETUP && display.screen != CarScreen.DESKTOP_FAILED) return@post
             logger.log("car apps: stopped (openAa=$openAa)")
             display.showStatus(CarScreen.CLOSED)
             ConnectionStateHolder.update { it.copy(desktop = false) }
@@ -722,7 +724,7 @@ class CarSession(
 
         /** Automatic reopens (restarts, retries, polls) must not undo an unplug or a deliberate exit. */
         internal fun mayAutoOpenAa(released: Boolean, screen: CarScreen): Boolean =
-            !released && screen != CarScreen.CLOSED && screen != CarScreen.MIRROR_ASK && screen != CarScreen.DESKTOP_SETUP
+            !released && screen != CarScreen.CLOSED && screen != CarScreen.MIRROR_ASK && screen != CarScreen.DESKTOP_SETUP && screen != CarScreen.DESKTOP_FAILED
 
         /** Reconnect backoff that long means Android Auto's server is gone, not just restarting. */
         internal fun lostServer(connectionActive: Boolean, inactiveForMs: Long): Boolean =

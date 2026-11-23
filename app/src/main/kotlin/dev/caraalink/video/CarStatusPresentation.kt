@@ -24,6 +24,8 @@ enum class CarScreen {
     MIRROR_ASK,
     /** The driver asked for full-screen apps, but Shizuku isn't ready on the phone. */
     DESKTOP_SETUP,
+    /** Shizuku was ready but car apps still didn't start. */
+    DESKTOP_FAILED,
 }
 
 /** Full-screen car message shown whenever Android Auto isn't on the car screen. */
@@ -50,10 +52,11 @@ class CarStatusPresentation(
             CarScreen.CLOSED -> R.string.car_closed_title
             CarScreen.MIRROR_ASK -> R.string.car_mirror_ask_title
             CarScreen.DESKTOP_SETUP -> R.string.car_desktop_setup_title
+            CarScreen.DESKTOP_FAILED -> R.string.car_desktop_failed_title
         }
         // Amber when the driver has to act, as on the phone.
         val needsDriver = screen == CarScreen.WAITING || screen == CarScreen.NOT_RESPONDING || screen == CarScreen.MIRROR_ASK ||
-            screen == CarScreen.DESKTOP_SETUP
+            screen == CarScreen.DESKTOP_SETUP || screen == CarScreen.DESKTOP_FAILED
         column.addView(text(title, 30f, if (needsDriver) AMBER else TEXT, bold = true))
         when (screen) {
             CarScreen.WAITING -> {
@@ -75,6 +78,10 @@ class CarStatusPresentation(
             }
             CarScreen.DESKTOP_SETUP -> {
                 column.addView(text(R.string.car_desktop_setup_body, 18f, MUTED))
+                column.addView(openButton(), spaced(top = dp(28)))
+            }
+            CarScreen.DESKTOP_FAILED -> {
+                column.addView(text(R.string.car_desktop_failed_body, 18f, MUTED))
                 column.addView(openButton(), spaced(top = dp(28)))
             }
         }
