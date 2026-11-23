@@ -449,8 +449,6 @@ class CarSession(
         val fy = y * enc.height.toFloat() / c.height
         when (display.mode) {
             CarDisplay.Mode.MIRROR -> mirrorTouch(action, enc.width, enc.height, fx, fy)
-            // The car-apps display is the encoder's size, so frame pixels are display pixels.
-            CarDisplay.Mode.DESKTOP -> runCatching { dev.caraalink.desktop.Desktop.shell?.touch(action, fx, fy) }
             else -> display.touch(action, fx, fy)
         }
     }
@@ -561,15 +559,19 @@ class CarSession(
                 AndroidAutoServer.cancelNeedsTap(context)
                 display.showDesktop(
                     shell,
-                    onReady = { id ->
-                        logger.log("car apps: display $id")
+                    onReady = { id, fresh ->
+                        logger.log("car apps: display $id${if (fresh) " (new)" else " (back)"}")
                         ConnectionStateHolder.update { it.copy(desktop = true, mirroring = false) }
-                        showCarLauncher()
+                        // Coming back from Android Auto shows the apps as they were.
+                        if (fresh) showCarLauncher()
                     },
                     onFailed = { why ->
                         logger.log("car apps: $why")
                         display.showStatus(CarScreen.DESKTOP_FAILED)
                     },
+                    onBack = { runCatching { shell.key(android.view.KeyEvent.KEYCODE_BACK) } },
+                    onApps = { showCarLauncher() },
+                    onAndroidAuto = { stopDesktop(openAa = true) },
                 )
             }
         }

@@ -30,7 +30,7 @@ class CarDisplay(
     enum class Mode { STATUS, AA, MIRROR, DESKTOP }
 
     /** Modes where something outside this display (screen capture, the Shizuku helper) renders into the encoder. */
-    private val handedOff get() = mode == Mode.MIRROR || mode == Mode.DESKTOP
+    private val handedOff get() = mode == Mode.MIRROR
 
     private val main = Handler(Looper.getMainLooper())
     private var carDisplay: VirtualDisplay? = null
@@ -72,18 +72,11 @@ class CarDisplay(
             it.resize(w, h, dpi)
             it.surface = surface
         }
-        desktopShell?.let {
-            runCatching {
-                it.resize(w, h, dpi)
-                it.setSurface(surface)
-            }.onFailure { e -> Log.w(TAG, "car apps display resize failed", e) }
-        }
         showCurrent()
     }
 
     fun showStatus(screen: CarScreen) = main.post {
         leaveMirror()
-        leaveDesktop()
         this.screen = screen
         mode = Mode.STATUS
         showCurrent()
@@ -96,7 +89,6 @@ class CarDisplay(
      */
     fun showMirror(projection: MediaProjection, onEnded: () -> Unit) = main.post {
         leaveMirror()
-        leaveDesktop()
         // Mode first: the Android Auto presentation ends its session only on a real exit from AA.
         mode = Mode.MIRROR
         // Leaving the mirror goes to Closed, and nothing reopens Android Auto behind it meanwhile.
@@ -129,42 +121,77 @@ class CarDisplay(
     }
 
     private var desktopShell: dev.caraalink.desktop.IShellDisplay? = null
+    /** The helper's display; kept while Android Auto is up so apps stay as they were. */
+    private var desktopId = -1
+    private var desktopOnReady: ((id: Int, fresh: Boolean) -> Unit)? = null
+    private var desktopOnFailed: ((String) -> Unit)? = null
+    private var desktopButtons: Triple<() -> Unit, () -> Unit, () -> Unit>? = null
 
     /**
-     * Full-screen apps: the Shizuku helper makes a car-sized display on the encoder
-     * surface and apps open on it. [onReady] gets that display's id; [onFailed] runs
-     * when the helper couldn't make one. Main thread for both.
+     * Full-screen apps: a bar with Back, the app list and Android Auto, and beside it the
+     * Shizuku helper's display rendering into this screen. [onReady] gets that display's id
+     * once it shows, with fresh = true when it was just made (nothing on it yet).
+     * [onFailed] runs when the helper couldn't make one. Main thread for all.
      */
-    fun showDesktop(shell: dev.caraalink.desktop.IShellDisplay, onReady: (Int) -> Unit, onFailed: (String) -> Unit) = main.post {
+    fun showDesktop(
+        shell: dev.caraalink.desktop.IShellDisplay,
+        onReady: (id: Int, fresh: Boolean) -> Unit,
+        onFailed: (String) -> Unit,
+        onBack: () -> Unit,
+        onApps: () -> Unit,
+        onAndroidAuto: () -> Unit,
+    ) = main.post {
         leaveMirror()
-        leaveDesktop()
-        mode = Mode.DESKTOP
-        screen = CarScreen.CLOSED
-        presentation?.dismiss()
-        presentation = null
-        carDisplay?.surface = null
-        val w = frameWidth.takeIf { it > 0 } ?: 1280
-        val h = frameHeight.takeIf { it > 0 } ?: 720
-        val id = try {
-            shell.create(encoderSurface, w, h, dpiFor(w, h))
-        } catch (e: Exception) {
-            Log.e(TAG, "car apps display failed", e)
-            -1
-        }
-        if (id < 0) {
-            carDisplay?.surface = encoderSurface
-            onFailed("display not created")
-            return@post
+        if (desktopShell?.asBinder() !== shell.asBinder()) {
+            // A new helper (first time, or the old one died): its display starts from scratch.
+            desktopId = -1
         }
         desktopShell = shell
-        onReady(id)
+        desktopOnReady = onReady
+        desktopOnFailed = onFailed
+        desktopButtons = Triple(onBack, onApps, onAndroidAuto)
+        mode = Mode.DESKTOP
+        screen = CarScreen.CLOSED
+        showCurrent()
     }
 
-    private fun leaveDesktop() {
+    /** The app area's surface came or went (on the main thread). */
+    private fun onDesktopSurface(surface: Surface?, w: Int, h: Int) {
+        val shell = desktopShell ?: return
+        if (surface == null) {
+            // Leaving car apps or redrawing the screen: the apps keep running without a picture.
+            runCatching { shell.setSurface(null) }
+            return
+        }
+        if (mode != Mode.DESKTOP) return
+        val dpi = dpiFor(frameWidth.takeIf { it > 0 } ?: w, frameHeight.takeIf { it > 0 } ?: h)
+        try {
+            if (desktopId >= 0) {
+                shell.resize(w, h, dpi)
+                shell.setSurface(surface)
+                desktopOnReady?.invoke(desktopId, false)
+                return
+            }
+            val id = shell.create(surface, w, h, dpi)
+            if (id < 0) {
+                desktopOnFailed?.invoke("display not created")
+                return
+            }
+            desktopId = id
+            desktopOnReady?.invoke(id, true)
+        } catch (e: Exception) {
+            Log.e(TAG, "car apps display failed", e)
+            desktopId = -1
+            desktopOnFailed?.invoke(e.toString())
+        }
+    }
+
+    /** Ends car apps for good (session over): the helper's display and its apps close. */
+    private fun releaseDesktop() {
         val shell = desktopShell ?: return
         desktopShell = null
+        desktopId = -1
         runCatching { shell.release() }
-        carDisplay?.surface = encoderSurface
     }
 
     /** Ends screen sharing and gives the encoder surface back to the car display. */
@@ -193,7 +220,6 @@ class CarDisplay(
         onTouch: (pointers: List<Triple<Int, Int, Int>>, actionIndex: Int, action: Int) -> Unit,
     ) = main.post {
         leaveMirror()
-        leaveDesktop()
         aaVideoSize = videoWidth to videoHeight
         aaMargin = widthMargin to heightMargin
         aaOnSurface = onSurface
@@ -214,6 +240,14 @@ class CarDisplay(
         presentation = try {
             when {
                 mode == Mode.AA && aaVideoSize != null -> aaPresentation(display)
+                mode == Mode.DESKTOP && desktopShell != null -> desktopButtons!!.let { (back, apps, aa) ->
+                    DesktopCarPresentation(
+                        context, display,
+                        onSurface = { surface, w, h -> onDesktopSurface(surface, w, h) },
+                        onTouch = { action, x, y -> runCatching { desktopShell?.touch(action, x, y) } },
+                        onBack = back, onApps = apps, onAndroidAuto = aa,
+                    )
+                }
                 else -> {
                     mode = Mode.STATUS
                     CarStatusPresentation(context, display, screen, onOpenAa, onMirror, onDesktop)
@@ -250,7 +284,7 @@ class CarDisplay(
 
     fun release() = main.post {
         leaveMirror()
-        leaveDesktop()
+        releaseDesktop()
         presentation?.dismiss()
         presentation = null
         carDisplay?.release()
