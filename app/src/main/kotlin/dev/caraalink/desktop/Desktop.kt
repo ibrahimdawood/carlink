@@ -83,6 +83,7 @@ object Desktop {
         }, CONNECT_TIMEOUT_MS)
         if (connection != null) return@post
         log("starting helper (Shizuku ${shizukuInfo()})")
+        bindStartedAt = System.currentTimeMillis()
         val conn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
                 val s = binder?.takeIf { it.pingBinder() }?.let { IShellDisplay.Stub.asInterface(it) }
@@ -108,6 +109,8 @@ object Desktop {
         }
     }
 
+    private var bindStartedAt = 0L
+
     private fun unbind(context: Context) {
         val conn = connection ?: return
         connection = null
@@ -128,27 +131,50 @@ object Desktop {
                 val newProcess = Shizuku::class.java.getDeclaredMethod(
                     "newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java,
                 ).apply { isAccessible = true }
-                val p = newProcess.invoke(null, arrayOf("logcat", "-d", "-t", "1500", "-v", "time"), null, null) as Process
+                // Everything since the bind started (a busy phone logs thousands of lines a minute).
+                val since = java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS", java.util.Locale.US)
+                    .format(java.util.Date((bindStartedAt.takeIf { it > 0 } ?: System.currentTimeMillis()) - 2_000))
+                val p = newProcess.invoke(null, arrayOf("logcat", "-d", "-v", "time", "-T", since), null, null) as Process
                 val out = p.inputStream.bufferedReader().readLines()
                 p.waitFor()
                 out.filter { line ->
-                    SHELL_LOG_HINTS.any { line.contains(it, ignoreCase = true) }
-                }.takeLast(120).joinToString("\n")
+                    SHELL_LOG_HINTS.any { line.contains(it, ignoreCase = true) } &&
+                        SHELL_LOG_NOISE.none { line.contains(it, ignoreCase = true) }
+                }.takeLast(200).joinToString("\n")
             }.getOrElse { "couldn't read the helper's log: $it" }
             log("helper log via Shizuku:\n${text.ifBlank { "(nothing about the helper)" }}")
         }, "Desktop-shell-log").start()
     }
 
     private val SHELL_LOG_HINTS = listOf(
-        "cardisplay", "CarLinkShell", "ShellDisplay", "UserService", "ServiceStarter", "shizuku",
-        "AndroidRuntime", "FATAL", "carlink",
+        "cardisplay", "CarLinkShell", "ShellDisplay", "UserService", "Starter", "shizuku",
+        "AndroidRuntime", "FATAL", "app_process", "dev.caraalink", "ClassNotFound", "NoSuchMethod",
     )
+    private val SHELL_LOG_NOISE = listOf("gralloc", "BufferQueue", "queueBuffer", "SMPTE")
     private const val CONNECT_TIMEOUT_MS = 15_000L
 
     private fun finish(s: IShellDisplay?) {
         val callbacks = waiting.toList()
         waiting.clear()
         callbacks.forEach { it(s) }
+    }
+
+    /**
+     * Settings' "test" without a car: start the helper and have it make a small display.
+     * [onResult] gets a one-line answer on the main thread; details go to the log.
+     */
+    fun selfTest(context: Context, log: (String) -> Unit, onResult: (ok: Boolean, text: String) -> Unit) {
+        connect(context, log) { s ->
+            if (s == null) {
+                onResult(false, "helper didn't start")
+                return@connect
+            }
+            val reader = android.media.ImageReader.newInstance(640, 360, android.graphics.PixelFormat.RGBA_8888, 2)
+            val id = runCatching { s.create(reader.surface, 640, 360, 160) }.getOrElse { log("test display: $it"); -1 }
+            runCatching { s.release() }
+            reader.close()
+            if (id < 0) onResult(false, "helper started, display failed") else onResult(true, "helper and display OK ($id)")
+        }
     }
 
     private fun args(context: Context) = Shizuku.UserServiceArgs(ComponentName(context.packageName, ShellDisplayService::class.java.name))

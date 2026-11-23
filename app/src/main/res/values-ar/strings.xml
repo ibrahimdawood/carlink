@@ -140,4 +140,8 @@
     <string name="cancel">إلغاء</string>
     <string name="car_desktop_failed_title">تطبيقات العربية ما اشتغلتش</string>
     <string name="car_desktop_failed_body">جرّب تاني، أو استخدم «شاشة الموبايل». وبعدين ابعت السجل من CarLink على موبايلك.</string>
+    <string name="desktop_testing">بنجرّب تطبيقات العربية…</string>
+    <string name="desktop_test_ok">تطبيقات العربية شغّالة: %1$s</string>
+    <string name="desktop_test_failed">تطبيقات العربية ما اشتغلتش: %1$s. ابعت السجل.</string>
+    <string name="desktop_tap_to_test">اضغط للتجربة</string>
 </resources>

@@ -141,10 +141,31 @@ private fun DesktopRow() {
     }
     ListItem(
         headlineContent = { Text(stringResource(R.string.settings_desktop), style = MaterialTheme.typography.bodyLarge) },
-        supportingContent = { Text(stringResource(dev.caraalink.ui.desktopStatusLabel(status))) },
+        supportingContent = {
+            Text(
+                stringResource(dev.caraalink.ui.desktopStatusLabel(status)) +
+                    if (status == dev.caraalink.desktop.Desktop.Status.READY) " · " + stringResource(R.string.desktop_tap_to_test) else "",
+            )
+        },
         leadingContent = { Icon(painterResource(R.drawable.ic_car), contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = Modifier.clickable { dev.caraalink.desktop.Desktop.fixNextStep(context) },
+        modifier = Modifier.clickable {
+            if (status == dev.caraalink.desktop.Desktop.Status.READY) {
+                // Ready: tapping tests the helper here at home, no car needed.
+                android.widget.Toast.makeText(context, context.getString(R.string.desktop_testing), android.widget.Toast.LENGTH_SHORT).show()
+                val logger = dev.caraalink.diagnostics.DiagnosticLogger(context, "car-apps-test")
+                dev.caraalink.desktop.Desktop.selfTest(context, { logger.log(it) }) { ok, text ->
+                    logger.log("test result: $text")
+                    android.widget.Toast.makeText(
+                        context,
+                        context.getString(if (ok) R.string.desktop_test_ok else R.string.desktop_test_failed, text),
+                        android.widget.Toast.LENGTH_LONG,
+                    ).show()
+                }
+            } else {
+                dev.caraalink.desktop.Desktop.fixNextStep(context)
+            }
+        },
     )
 }
 

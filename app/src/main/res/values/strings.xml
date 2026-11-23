@@ -145,4 +145,8 @@
     <string name="cancel">Cancel</string>
     <string name="car_desktop_failed_title">Car apps didn\'t start</string>
     <string name="car_desktop_failed_body">Try again, or use Phone screen. Then send logs from CarLink on your phone.</string>
+    <string name="desktop_testing">Testing car apps…</string>
+    <string name="desktop_test_ok">Car apps work: %1$s</string>
+    <string name="desktop_test_failed">Car apps failed: %1$s. Send logs.</string>
+    <string name="desktop_tap_to_test">tap to test</string>
 </resources>
