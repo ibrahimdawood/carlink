@@ -109,6 +109,12 @@
             android:taskAffinity="${applicationId}.car"
             android:theme="@style/Theme.CarAALink" />
 
+        <!-- Where the car-apps helper (shell user) hands CarLink its binder; checks the caller's uid. -->
+        <provider
+            android:name=".desktop.HelperProvider"
+            android:authorities="${applicationId}.helper"
+            android:exported="true" />
+
         <!-- Lets Shizuku hand CarLink its binder. -->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

@@ -27,7 +27,7 @@ import kotlin.system.exitProcess
  * Everything here reaches hidden Android APIs by reflection; this process isn't
  * an app, so Android doesn't block them.
  */
-class ShellDisplayService(context: Context) : IShellDisplay.Stub() {
+class ShellDisplayService(context: Context, appPackage: String = context.packageName) : IShellDisplay.Stub() {
 
     /** Shizuku calls this one when it can't hand over a Context. */
     constructor() : this(systemContext())
@@ -35,7 +35,7 @@ class ShellDisplayService(context: Context) : IShellDisplay.Stub() {
     private val shellContext: Context = ShellContext(context)
 
     /** CarLink's own log folder; the shell user may write there, and "Send logs" zips it. */
-    private val logFile = java.io.File("/sdcard/Android/data/${context.packageName}/files/logs/shell-helper.log")
+    private val logFile = java.io.File("/sdcard/Android/data/$appPackage/files/logs/shell-helper.log")
 
     private fun log(msg: String, e: Throwable? = null) {
         Log.i(TAG, msg, e)

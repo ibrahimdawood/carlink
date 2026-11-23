@@ -3,14 +3,12 @@ package dev.caraalink.desktop
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
-import dev.caraalink.BuildConfig
 import rikka.shizuku.Shizuku
 
 /**
@@ -32,7 +30,6 @@ object Desktop {
 
     @Volatile var shell: IShellDisplay? = null
         private set
-    private var connection: ServiceConnection? = null
     private val waiting = mutableListOf<(IShellDisplay?) -> Unit>()
 
     fun status(context: Context): Status {
@@ -81,40 +78,72 @@ object Desktop {
                 onReady(null)
             }
         }, CONNECT_TIMEOUT_MS)
-        if (connection != null) return@post
+        if (helperProcess != null) return@post
         log("starting helper (Shizuku ${shizukuInfo()})")
         bindStartedAt = System.currentTimeMillis()
-        val conn = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                val s = binder?.takeIf { it.pingBinder() }?.let { IShellDisplay.Stub.asInterface(it) }
-                log("helper ${if (s != null) "connected" else "not usable"}")
-                shell = s
-                if (s == null) connection = null
-                finish(s)
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                log("helper gone")
-                shell = null
-                connection = null
-            }
-        }
-        connection = conn
-        try {
-            Shizuku.bindUserService(args(context), conn)
-        } catch (e: Exception) {
-            log("bindUserService failed: $e")
-            connection = null
-            finish(null)
-        }
+        helperLog = log
+        startHelper(context, log)
     }
 
-    private var bindStartedAt = 0L
+    /** CarLink's side of the helper's life: while this lives, the helper does too. */
+    val appToken: IBinder = android.os.Binder()
 
-    private fun unbind(context: Context) {
-        val conn = connection ?: return
-        connection = null
-        runCatching { Shizuku.unbindUserService(args(context), conn, true) }
+    private var bindStartedAt = 0L
+    @Volatile private var helperProcess: Process? = null
+    @Volatile private var helperLog: (String) -> Unit = {}
+
+    /**
+     * Starts [ShellMain] with app_process through Shizuku (the shell user), the way scrcpy
+     * starts. Shizuku's own service starter crashed on a Xiaomi build, so it isn't used.
+     */
+    private fun startHelper(context: Context, log: (String) -> Unit) {
+        val apk = context.applicationInfo.sourceDir
+        val cmd = "CLASSPATH='$apk' exec /system/bin/app_process /system/bin " +
+            "--nice-name=${context.packageName}:cardisplay ${ShellMain::class.java.name} ${context.packageName}"
+        val p = try {
+            val newProcess = Shizuku::class.java.getDeclaredMethod(
+                "newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java,
+            ).apply { isAccessible = true }
+            newProcess.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
+        } catch (e: Exception) {
+            log("couldn't start helper: ${e.cause ?: e}")
+            finish(null)
+            return
+        }
+        helperProcess = p
+        // Everything the helper prints (its errors included) goes to CarLink's log.
+        for ((name, stream) in listOf("out" to p.inputStream, "err" to p.errorStream)) {
+            Thread({
+                runCatching { stream.bufferedReader().forEachLine { log("helper $name: $it") } }
+            }, "Desktop-helper-$name").start()
+        }
+        Thread({
+            val code = runCatching { p.waitFor() }.getOrDefault(-1)
+            main.post {
+                if (helperProcess === p) {
+                    helperProcess = null
+                    shell = null
+                    log("helper exited ($code)")
+                    finish(null)
+                }
+            }
+        }, "Desktop-helper-wait").start()
+    }
+
+    /** From [HelperProvider], on a binder thread. */
+    internal fun onHelperAttached(binder: IBinder) = main.post {
+        val s = IShellDisplay.Stub.asInterface(binder)
+        runCatching { binder.linkToDeath({ main.post { if (shell === s) shell = null } }, 0) }
+        shell = s
+        helperLog("helper connected")
+        finish(s)
+    }
+
+    private fun unbind(@Suppress("UNUSED_PARAMETER") context: Context) {
+        runCatching { shell?.destroy() }
+        shell = null
+        helperProcess?.let { runCatching { it.destroy() } }
+        helperProcess = null
     }
 
     private fun shizukuInfo(): String = runCatching {
@@ -176,12 +205,6 @@ object Desktop {
             if (id < 0) onResult(false, "helper started, display failed") else onResult(true, "helper and display OK ($id)")
         }
     }
-
-    private fun args(context: Context) = Shizuku.UserServiceArgs(ComponentName(context.packageName, ShellDisplayService::class.java.name))
-        .daemon(false)
-        .processNameSuffix("cardisplay")
-        .debuggable(BuildConfig.DEBUG)
-        .version(BuildConfig.VERSION_CODE)
 
     /** Opens an app on the car display; off the main thread, since `am start` takes a moment. */
     fun launch(component: String, onError: (String) -> Unit = {}) {
