@@ -76,6 +76,9 @@ fun SettingsScreen(onBack: () -> Unit, onHelp: () -> Unit, onAbout: () -> Unit) 
                 UpdateChecker.checkNow(context, manual = true)
             }
             DesktopRow()
+            SettingsRow(painterResource(R.drawable.ic_apps), stringResource(R.string.car_apps_title)) {
+                context.startActivity(Intent(context, dev.caraalink.desktop.CarAppsActivity::class.java))
+            }
             TouchControlRow()
             SettingsRow(painterResource(R.drawable.ic_help), stringResource(R.string.help), onHelp)
             SettingsRow(rememberVectorPainter(Icons.Rounded.Info), stringResource(R.string.settings_about), onAbout)

@@ -113,6 +113,24 @@ class ShellDisplayService(context: Context, appPackage: String = context.package
         }
     }
 
+    override fun setImeLocal(local: Boolean): String? {
+        val id = displayId
+        if (id < 0) return "no display"
+        // `wm set-display-ime-policy` exists from Android 12; before that the keyboard stays on the phone.
+        if (Build.VERSION.SDK_INT < 31) return "needs Android 12"
+        return try {
+            val p = ProcessBuilder("wm", "set-display-ime-policy", id.toString(), if (local) "local" else "fallbackDisplay")
+                .redirectErrorStream(true).start()
+            val out = p.inputStream.bufferedReader().readText().trim()
+            val code = p.waitFor()
+            log("ime policy ${if (local) "local" else "phone"} on $id: exit $code $out")
+            if (code != 0) out.ifBlank { "exit $code" } else null
+        } catch (e: Exception) {
+            log("ime policy failed", e)
+            e.toString()
+        }
+    }
+
     override fun touch(action: Int, x: Float, y: Float) {
         val id = displayId
         if (id < 0) return

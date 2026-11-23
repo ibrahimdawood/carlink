@@ -13,6 +13,8 @@
     <!-- Showing the phone's own screen on the car (screen mirroring). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Reminds car-apps drivers to start Shizuku again after a phone restart. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
@@ -114,6 +116,19 @@
             android:name=".desktop.HelperProvider"
             android:authorities="${applicationId}.helper"
             android:exported="true" />
+
+        <activity
+            android:name=".desktop.CarAppsActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:exported="false" />
+
+        <receiver
+            android:name=".desktop.ShizukuReminder"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Lets Shizuku hand CarLink its binder. -->
         <provider

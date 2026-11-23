@@ -54,12 +54,29 @@ class CarLauncherActivity : ComponentActivity() {
 
     private class App(val label: String, val component: String, val icon: ImageBitmap)
 
+    /** Bumped on every return to the list, so favorites changed on the phone show up. */
+    private val resumes = mutableStateOf(0)
+
+    override fun onResume() {
+        super.onResume()
+        resumes.value++
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             var apps by remember { mutableStateOf<List<App>?>(null) }
+            var showAll by remember { mutableStateOf(false) }
             if (apps == null) loadApps { apps = it }
-            Launcher(apps.orEmpty())
+            val all = apps.orEmpty()
+            @Suppress("UNUSED_VARIABLE") val tick = resumes.value
+            val picked = dev.caraalink.settings.AppSettings.carFavorites(this)
+            val favorites = picked.mapNotNull { c -> all.firstOrNull { it.component == c } }
+            if (favorites.isEmpty() || showAll) {
+                Launcher(all, big = false, toggle = if (favorites.isEmpty()) null else (R.string.car_favorites to { showAll = false }))
+            } else {
+                Launcher(favorites, big = true, toggle = R.string.car_all_apps to { showAll = true })
+            }
         }
     }
 
@@ -85,6 +102,7 @@ class CarLauncherActivity : ComponentActivity() {
     }
 
     private fun open(app: App) {
+        dev.caraalink.settings.AppSettings.setLastCarApp(this, app.component)
         Desktop.launch(app.component) {
             Toast.makeText(this, getString(R.string.desktop_open_failed, app.label), Toast.LENGTH_SHORT).show()
         }
@@ -98,8 +116,11 @@ class CarLauncherActivity : ComponentActivity() {
         )
     }
 
+    /** [big] tiles for the few favorites; [toggle] is the tile that switches to the other list. */
     @Composable
-    private fun Launcher(apps: List<App>) {
+    private fun Launcher(apps: List<App>, big: Boolean, toggle: Pair<Int, () -> Unit>?) {
+        val tile = if (big) 150.dp else 112.dp
+        val icon = if (big) 84.dp else 64.dp
         Column(Modifier.fillMaxSize().background(BACKGROUND).padding(horizontal = 24.dp, vertical = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.app_name).uppercase(), color = ACCENT, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold,
@@ -112,7 +133,7 @@ class CarLauncherActivity : ComponentActivity() {
                 }
             }
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(112.dp),
+                columns = GridCells.Adaptive(tile),
                 modifier = Modifier.fillMaxSize().padding(top = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -121,9 +142,29 @@ class CarLauncherActivity : ComponentActivity() {
                         Modifier.clip(RoundedCornerShape(16.dp)).clickable { open(app) }.padding(10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Image(app.icon, contentDescription = null, modifier = Modifier.size(64.dp))
-                        Text(app.label, color = TEXT, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        Image(app.icon, contentDescription = null, modifier = Modifier.size(icon))
+                        Text(app.label, color = TEXT, fontSize = if (big) 17.sp else 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
+                    }
+                }
+                toggle?.let { (label, onClick) ->
+                    item(key = "toggle") {
+                        Column(
+                            Modifier.clip(RoundedCornerShape(16.dp)).clickable { onClick() }.padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+                                Modifier.size(icon).clip(RoundedCornerShape(18.dp)).background(TILE),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    androidx.compose.ui.res.painterResource(R.drawable.ic_apps), contentDescription = null,
+                                    tint = ACCENT, modifier = Modifier.size(icon / 2),
+                                )
+                            }
+                            Text(stringResource(label), color = TEXT, fontSize = if (big) 17.sp else 14.sp,
+                                textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
+                        }
                     }
                 }
             }
@@ -135,5 +176,6 @@ class CarLauncherActivity : ComponentActivity() {
         val ACCENT = Color(0xFF5EEAD4)
         val BRAND = Color(0xFF0D9488)
         val TEXT = Color(0xFFE8F1F2)
+        val TILE = Color(0xFF121A20)
     }
 }

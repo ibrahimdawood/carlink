@@ -231,6 +231,7 @@ fun HomeScreen(onOpenSettings: () -> Unit, onOpenNearby: () -> Unit) {
                 Spacer(Modifier.height(4.dp))
             }
             HomeActions(state, connection, onOpenNearby)
+            ShizukuHint()
             SendLogsLink()
         }
     }
@@ -256,6 +257,25 @@ private fun HomeActions(state: HomeState, connection: ConnectionSnapshot, onOpen
             DashLink(stringResource(R.string.home_try_again)) { retryWireless(context, connection) }
         }
     }
+}
+
+/** After a restart Shizuku is off, and it needs Wi-Fi to start: say so while the driver can still fix it. */
+@Composable
+private fun ShizukuHint() {
+    val context = LocalContext.current
+    if (!AppSettings.usedCarApps(context)) return
+    if (dev.caraalink.desktop.Desktop.status(context) != dev.caraalink.desktop.Desktop.Status.NOT_RUNNING) return
+    Spacer(Modifier.height(4.dp))
+    Text(
+        stringResource(R.string.shizuku_hint),
+        color = Dash.Amber,
+        fontSize = 13.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { dev.caraalink.desktop.Desktop.fixNextStep(context) }
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    )
 }
 
 /** Zips the logs and opens the share sheet, so a tester far away can send them over any chat app. */

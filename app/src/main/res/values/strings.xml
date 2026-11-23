@@ -149,4 +149,13 @@
     <string name="desktop_test_ok">Car apps work: %1$s</string>
     <string name="desktop_test_failed">Car apps failed: %1$s. Send logs.</string>
     <string name="desktop_tap_to_test">tap to test</string>
+    <string name="car_favorites">Favorites</string>
+    <string name="car_all_apps">All apps</string>
+    <string name="car_apps_title">Apps on the car</string>
+    <string name="car_open_last">Open the last app when car apps start</string>
+    <string name="car_keyboard">Keyboard on the car screen (Android 12+)</string>
+    <string name="car_apps_pick">Pick the apps the car shows first, in the order you want. Pick none to show all apps.</string>
+    <string name="shizuku_reminder_title">Start Shizuku for car apps</string>
+    <string name="shizuku_reminder_body">Your phone restarted, so Shizuku stopped. Start it now while you\'re on Wi-Fi; it keeps running in the car.</string>
+    <string name="shizuku_hint">Shizuku isn\'t running. Start it now while you\'re on Wi-Fi.</string>
 </resources>

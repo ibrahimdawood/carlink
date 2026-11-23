@@ -144,4 +144,13 @@
     <string name="desktop_test_ok">تطبيقات العربية شغّالة: %1$s</string>
     <string name="desktop_test_failed">تطبيقات العربية ما اشتغلتش: %1$s. ابعت السجل.</string>
     <string name="desktop_tap_to_test">اضغط للتجربة</string>
+    <string name="car_favorites">المفضّلة</string>
+    <string name="car_all_apps">كل التطبيقات</string>
+    <string name="car_apps_title">التطبيقات على العربية</string>
+    <string name="car_open_last">افتح آخر تطبيق لما تطبيقات العربية تبدأ</string>
+    <string name="car_keyboard">الكيبورد على شاشة العربية (Android 12 وأحدث)</string>
+    <string name="car_apps_pick">اختار التطبيقات اللي تظهر الأول على العربية، بالترتيب اللي تحبه. لو ما اخترتش حاجة هتظهر كل التطبيقات.</string>
+    <string name="shizuku_reminder_title">شغّل Shizuku لتطبيقات العربية</string>
+    <string name="shizuku_reminder_body">الموبايل عمل ريستارت فـ Shizuku وقف. شغّله دلوقتي وانت على الواي فاي، وهيفضل شغّال في العربية.</string>
+    <string name="shizuku_hint">Shizuku مش شغّال. شغّله دلوقتي وانت على الواي فاي.</string>
 </resources>

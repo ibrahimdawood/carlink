@@ -16,6 +16,8 @@ interface IShellDisplay {
     /** A MotionEvent action at display pixels. */
     oneway void touch(int action, float x, float y) = 6;
     oneway void key(int keyCode) = 7;
+    /** Keyboard on this display (true) or on the phone (false); returns null, or what went wrong. */
+    String setImeLocal(boolean local) = 8;
     /** Shizuku's own code for ending the helper process. */
     void destroy() = 16777114;
 }

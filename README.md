@@ -74,7 +74,11 @@ This opens apps on their own car-sized screen, so they fill the whole car displa
 3. With the car connected, tap **Full-screen apps on the car** on the phone, or **Car apps** on the car screen.
 4. The car shows your apps. Tap one to open it. The car's Home key brings the list back, its Back key is Back.
 
-One finger only: the car sends single touches. The keyboard opens on the phone. Some apps may not like the wide screen, and protected video can show black.
+The car screen keeps a bar on the driver's side: Back, the app list and Android Auto. Switching to Android Auto keeps your apps open, and Android Auto keeps running while you use car apps, so going back and forth is quick.
+
+In Settings → **Apps on the car** you can pick favorites (shown first, in your order), have the last app reopen when car apps start, and put the keyboard on the car screen (Android 12 and newer). After a phone restart CarLink reminds you to start Shizuku while you're still on Wi-Fi.
+
+One finger only: the car sends single touches. Some apps may not like the wide screen, and protected video can show black.
 
 ## If something goes wrong
 

@@ -37,6 +37,30 @@ object AppSettings {
     fun setWirelessCar(context: Context, car: RememberedCar?) = prefs(context).edit()
         .putString("wireless_car_name", car?.name).putString("wireless_car_address", car?.address).apply()
 
+    // --- full-screen apps on the car ---
+
+    /** Apps picked for the car's home screen, as "package/class", in the order picked. Empty = show all. */
+    fun carFavorites(context: Context): List<String> =
+        prefs(context).getString("car_favorites", null)?.split('\n')?.filter { it.isNotBlank() }.orEmpty()
+
+    fun setCarFavorites(context: Context, components: List<String>) =
+        prefs(context).edit().putString("car_favorites", components.joinToString("\n")).apply()
+
+    /** The last app opened on the car, reopened when car apps start again. */
+    fun lastCarApp(context: Context): String? = prefs(context).getString("car_last_app", null)
+    fun setLastCarApp(context: Context, component: String?) = prefs(context).edit().putString("car_last_app", component).apply()
+
+    fun openLastCarApp(context: Context): Boolean = prefs(context).getBoolean("car_open_last", true)
+    fun setOpenLastCarApp(context: Context, value: Boolean) = prefs(context).edit().putBoolean("car_open_last", value).apply()
+
+    /** Keyboard on the car screen instead of the phone's. */
+    fun carKeyboard(context: Context): Boolean = prefs(context).getBoolean("car_keyboard", true)
+    fun setCarKeyboard(context: Context, value: Boolean) = prefs(context).edit().putBoolean("car_keyboard", value).apply()
+
+    /** Car apps were used at least once, so a phone restart is worth a Shizuku reminder. */
+    fun usedCarApps(context: Context): Boolean = prefs(context).getBoolean("car_apps_used", false)
+    fun setUsedCarApps(context: Context) = prefs(context).edit().putBoolean("car_apps_used", true).apply()
+
     fun resolutionMode(context: Context): ResolutionMode =
         when (prefs(context).getString("video_resolution_mode", "auto")) {
             "custom" -> ResolutionMode.CUSTOM

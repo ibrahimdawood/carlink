@@ -10,6 +10,7 @@ import dev.caraalink.connection.ConnectionPhase
 import dev.caraalink.connection.ConnectionStateHolder
 
 import dev.caraalink.diagnostics.DiagnosticLogger
+import dev.caraalink.settings.AppSettings
 import dev.caraalink.usb.UsbAccessoryConnection
 import dev.caraalink.video.CarDisplay
 import dev.caraalink.video.CarScreen
@@ -158,7 +159,8 @@ class CarSession(
     private fun openAndroidAuto() {
         if (released) return
         if (dev.caraalink.aa.AaSessionProbe.active != null) {
-            showAaSurface()
+            // Already running (maybe unseen behind car apps or the phone screen): just bring it up.
+            showAaSurface(evenIfAway = true)
             return
         }
         synchronized(this) {
@@ -330,11 +332,10 @@ class CarSession(
         }
     }
 
-    private fun showAaSurface() {
-        if (display.mode == CarDisplay.Mode.MIRROR || display.mode == CarDisplay.Mode.DESKTOP) {
-            // Android Auto finished starting after the driver switched to the phone screen.
-            logger.log("AA ready while mirroring -- closing it")
-            dev.caraalink.aa.AaSessionProbe.active?.stop()
+    private fun showAaSurface(evenIfAway: Boolean = false) {
+        if (!evenIfAway && (display.mode == CarDisplay.Mode.MIRROR || display.mode == CarDisplay.Mode.DESKTOP)) {
+            // Android Auto finished starting after the driver switched away: keep it ready in the background.
+            logger.log("AA ready while ${display.mode} is on the car -- keeping it in the background")
             return
         }
         aaWatchdog.removeCallbacks(aaWatchdogTick)
@@ -372,11 +373,16 @@ class CarSession(
                     aaDecoder = dec
                     myProbe?.attachVideoSink { ts, nal -> aaDecoder?.feed(ts, nal) }
                 } else {
-                    // End the session for real when leaving AA, not on a restart's teardown.
-                    if (display.mode != dev.caraalink.video.CarDisplay.Mode.AA &&
+                    // End the session for real only when the driver closed Android Auto. Switching to car
+                    // apps or the phone screen keeps it running unseen, so coming back is instant.
+                    val mode = display.mode
+                    if (mode == dev.caraalink.video.CarDisplay.Mode.STATUS &&
                         dev.caraalink.aa.AaSessionProbe.active === myProbe
                     ) {
                         myProbe?.stop()
+                    } else if (mode != dev.caraalink.video.CarDisplay.Mode.AA) {
+                        logger.log("AA kept in the background while $mode is on the car")
+                        myProbe?.attachVideoSink { _, _ -> }
                     }
                     aaDecoder?.stop()
                     aaDecoder = null
@@ -504,9 +510,8 @@ class CarSession(
             val wasMirroring = display.mode == CarDisplay.Mode.MIRROR
             if (!wasMirroring && display.screen != CarScreen.MIRROR_ASK) return@post
             logger.log("mirror: stopped (openAa=$openAa)")
-            display.showStatus(CarScreen.CLOSED)
             ConnectionStateHolder.update { it.copy(mirroring = false) }
-            if (openAa) openAndroidAuto()
+            if (openAa) openAndroidAuto() else display.showStatus(CarScreen.CLOSED)
         }
     }
 
@@ -562,8 +567,21 @@ class CarSession(
                     onReady = { id, fresh ->
                         logger.log("car apps: display $id${if (fresh) " (new)" else " (back)"}")
                         ConnectionStateHolder.update { it.copy(desktop = true, mirroring = false) }
+                        AppSettings.setUsedCarApps(context)
                         // Coming back from Android Auto shows the apps as they were.
-                        if (fresh) showCarLauncher()
+                        if (fresh) {
+                            Thread({
+                                val keyboard = AppSettings.carKeyboard(context)
+                                runCatching { shell.setImeLocal(keyboard) }
+                                    .onSuccess { err -> if (err != null) logger.log("car apps: keyboard on car: $err") }
+                            }, "Desktop-ime").start()
+                            showCarLauncher()
+                            // Pick up where the driver left off; the list stays underneath for Back.
+                            val last = AppSettings.lastCarApp(context)
+                            if (last != null && AppSettings.openLastCarApp(context)) {
+                                main.postDelayed({ dev.caraalink.desktop.Desktop.launch(last) }, 600)
+                            }
+                        }
                     },
                     onFailed = { why ->
                         logger.log("car apps: $why")
@@ -592,9 +610,8 @@ class CarSession(
             val active = display.mode == CarDisplay.Mode.DESKTOP
             if (!active && display.screen != CarScreen.DESKTOP_SETUP && display.screen != CarScreen.DESKTOP_FAILED) return@post
             logger.log("car apps: stopped (openAa=$openAa)")
-            display.showStatus(CarScreen.CLOSED)
             ConnectionStateHolder.update { it.copy(desktop = false) }
-            if (openAa) openAndroidAuto()
+            if (openAa) openAndroidAuto() else display.showStatus(CarScreen.CLOSED)
         }
     }
 
